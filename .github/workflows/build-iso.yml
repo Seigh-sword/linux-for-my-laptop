@@ -1,7 +1,7 @@
 # ============================================================================
 # Build the arunlinux ISO in the cloud (GitHub Actions)
-# Trigger: push to main, weekly schedule, or manual "Run workflow".
-# ISO → Artifacts (kept 7 days).
+# Trigger: PR, push to main, weekly schedule, or manual "Run workflow".
+# ISO → Artifacts (kept 7 days). Result + error excerpt posted as PR comment.
 # Note: live-build needs privileges → we build inside a privileged container.
 # ============================================================================
 name: Build arunlinux ISO
@@ -52,7 +52,9 @@ jobs:
           df -h
 
       - name: Build ISO in privileged Debian container
+        id: build
         run: |
+          set +e
           docker run --privileged --rm \
             -v "$PWD:/repo" -w /repo \
             debian:trixie bash -c "
@@ -64,13 +66,41 @@ jobs:
               chmod +x build/build-iso.sh build/lb-config.sh \
                 build/hooks/live/* build/hooks/bootstrap/* 2>/dev/null || true
               LB_CACHE=false VERSION='${{ github.run_number }}' bash build/build-iso.sh
-            "
+            " 2>&1 | tee iso-build.log
+          RC=${PIPESTATUS[0]}
+          echo "exit_code=$RC" >> "$GITHUB_OUTPUT"
+          exit $RC
 
       - name: Show result
         if: always()
         run: |
           ls -lh out/ || true
           df -h
+
+      - name: Report result to PR
+        if: always() && github.event_name == 'pull_request' && steps.build.outputs.exit_code != ''
+        run: |
+          PASS="✅ ISO BUILD PASSED"; [ "${{ steps.build.outputs.exit_code }}" = "0" ] || PASS="❌ ISO BUILD FAILED"
+          {
+            echo "## $PASS — run ${{ github.run_id }}"
+            echo ""
+            echo "<details><summary>🔍 Error lines</summary>"
+            echo ""
+            echo '```'
+            grep -iE "error|E: |failed|FAIL" iso-build.log | grep -viE "dpkg.*warning|update-alternatives|ERROR.*squashfs.*ignored" | tail -30
+            echo '```'
+            echo "</details>"
+            echo ""
+            echo "<details><summary>📜 Last 60 lines</summary>"
+            echo ""
+            echo '```'
+            tail -60 iso-build.log
+            echo '```'
+            echo "</details>"
+          } > report.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4

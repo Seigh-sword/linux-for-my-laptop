@@ -2,6 +2,7 @@
 # Fast pre-build checks (~2 min): shell syntax, live-build flags, and every
 # package name verified against the real Debian trixie repositories.
 # Run this BEFORE the 40-minute ISO build to catch silly failures early.
+# (Result + log tail are posted as a PR comment so failures are easy to read.)
 # ============================================================================
 name: Lint distro config
 
@@ -35,7 +36,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Lint in Debian trixie container
+        id: lint
         run: |
+          set +e
           docker run --rm \
             -v "$PWD:/repo" -w /repo \
             debian:trixie bash -c "
@@ -43,4 +46,22 @@ jobs:
               apt-get update -qq
               apt-get install -y -qq live-build debootstrap
               bash scripts/lint-distro.sh
-            "
+            " 2>&1 | tee lint-output.txt
+          RC=${PIPESTATUS[0]}
+          echo "exit_code=$RC" >> "$GITHUB_OUTPUT"
+          exit $RC
+
+      - name: Report result to PR
+        if: always() && github.event_name == 'pull_request' && steps.lint.outputs.exit_code != ''
+        run: |
+          PASS="✅ LINT PASSED"; [ "${{ steps.lint.outputs.exit_code }}" = "0" ] || PASS="❌ LINT FAILED"
+          {
+            echo "## $PASS — run ${{ github.run_id }}"
+            echo ""
+            echo '```'
+            tail -80 lint-output.txt
+            echo '```'
+          } > report.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

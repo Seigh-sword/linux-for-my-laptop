@@ -45,7 +45,7 @@ lb config noauto \
   --iso-publisher "arunlinux" \
   --iso-volume "${DISTRO_NAME}-${VERSION}" \
   --iso-application "${DISTRO_NAME} ${VERSION}" \
-  --image-name "live-image-${ARCH}" \
+  --image-name "live-image" \
   --bootappend-live "boot=live components username=arun hostname=arunlinux quiet splash intel_iommu=on i915.enable_psr=1 i915.enable_fbc=1 zswap.enabled=0" \
   "$@"
 

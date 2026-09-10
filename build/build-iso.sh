@@ -71,7 +71,12 @@ echo "🔨 Building ISO (this takes 20–60 minutes)..."
 lb build
 
 # --- 4. Collect output --------------------------------------------------------
+# live-build names it <image-name>-<arch>.hybrid.iso — but be tolerant in
+# case naming varies by live-build version (pick newest ISO-like file).
 ISO_SRC="live-image-${ARCH}.hybrid.iso"
+if [ ! -f "$ISO_SRC" ]; then
+  ISO_SRC="$(ls -t *.hybrid.iso *.iso 2>/dev/null | head -1)"
+fi
 ISO_DST="${OUTDIR}/${DISTRO_NAME}-${VERSION}-${ARCH}.hybrid.iso"
 if [ -f "$ISO_SRC" ]; then
   mv "$ISO_SRC" "$ISO_DST"

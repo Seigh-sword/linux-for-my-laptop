@@ -37,12 +37,13 @@ pipewire
 pipewire-pulse
 wireplumber
 pavucontrol
-laptop-mode-tools
 acpi-support
 iw
 wpasupplicant
 usb-modeswitch
 modemmanager
-printer-driver-all-enforce
+# Printing: gutenprint (Epson/Canon) + hplip (HP) + driverless IPP via cups-filters
+# (NOTE: laptop-mode-tools deliberately absent — TLP handles power instead)
+printer-driver-gutenprint
 hplip
 simple-scan

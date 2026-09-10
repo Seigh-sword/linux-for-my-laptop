@@ -35,7 +35,7 @@ python3-venv
 pipx
 
 # --- Java (OpenJDK LTS; Temurin option in dev-setup.sh) ---
-openjdk-17-jdk
+openjdk-21-jdk
 maven
 gradle
 
@@ -46,4 +46,3 @@ podman
 # --- Docs / misc ---
 man-db
 manpages-dev
-tldr

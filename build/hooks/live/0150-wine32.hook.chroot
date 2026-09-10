@@ -1,0 +1,13 @@
+#!/bin/bash
+# live-build chroot hook: install 32-bit Wine + helpers (needs the i386 arch
+# enabled by the 0100 hooks). Installed here instead of the package lists so
+# the build survives even if multiarch setup hiccups.
+set -e
+echo "==> [arunlinux hook] installing 32-bit Wine..."
+dpkg --add-architecture i386
+apt-get update || true
+apt-get install -y wine32 || echo "⚠️  wine32 failed — install it later with: sudo apt install wine32"
+# 32-bit audio/game libs many Windows apps need (trixie renamed some to t64)
+apt-get install -y libasound2-plugins:i386 libsdl2-2.0-0:i386 2>/dev/null || \
+apt-get install -y libasound2t64-plugins:i386 2>/dev/null || true
+echo "==> [arunlinux hook] wine32 done."

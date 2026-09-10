@@ -1,7 +1,6 @@
 #!/bin/bash
 # live-build chroot hook: copy arunlinux tweaks + apps into the image.
-# Expects /arun-src (scripts apps kernel assets) copied next to the build.
-# build-iso.sh places it via includes.chroot; path may vary — we probe.
+# Expects /arun-src inside the chroot (placed via config/includes.chroot).
 set -e
 echo "==> [arunlinux hook] applying arunlinux tweaks + apps..."
 
@@ -16,8 +15,9 @@ fi
 
 # --- Kernel / sysctl / zram / modprobe configs ---
 install -Dm644 "$SRC/kernel/sysctl/99-arunlinux.conf" /etc/sysctl.d/99-arunlinux.conf
-install -Dm644 "$SRC/kernel/zram/zram-generator.conf" /etc/systemd/zram-generator.conf 2>/dev/null \
-  || install -Dm644 "$SRC/kernel/zram/zram-swap.default" /etc/default/zramswap
+# Install BOTH zram configs (each backend reads its own file; the other is ignored)
+install -Dm644 "$SRC/kernel/zram/zram-generator.conf" /etc/systemd/zram-generator.conf
+install -Dm644 "$SRC/kernel/zram/zram-swap.default" /etc/default/zramswap
 install -Dm644 "$SRC/kernel/modprobe/i915.conf" /etc/modprobe.d/i915-arunlinux.conf
 install -Dm644 "$SRC/kernel/earlyoom/earlyoom.default" /etc/default/earlyoom
 
@@ -47,6 +47,10 @@ for app in arun-welcome arun-wallpapers arun-optimizer; do
   fi
 done
 
+# --- Welcome Center autostart for future users ---
+mkdir -p /etc/skel/.config/autostart
+cp /usr/share/arunlinux/arun-welcome/arun-welcome.desktop /etc/skel/.config/autostart/ 2>/dev/null || true
+
 # --- Flatpak: add Flathub by default ---
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
 
@@ -55,5 +59,8 @@ systemctl enable earlyoom 2>/dev/null || true
 systemctl enable tlp 2>/dev/null || true
 systemctl enable thermald 2>/dev/null || true
 systemctl enable preload 2>/dev/null || true
+
+# --- Clean up the build payload (wallpapers/apps already copied above) ---
+rm -rf /arun-src
 
 echo "==> [arunlinux hook] tweaks applied. 🎉"

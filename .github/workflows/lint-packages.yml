@@ -1,0 +1,42 @@
+# ============================================================================
+# Fast pre-build checks (~2 min): shell syntax, live-build flags, and every
+# package name verified against the real Debian trixie repositories.
+# Run this BEFORE the 40-minute ISO build to catch silly failures early.
+# ============================================================================
+name: Lint distro config
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'build/**'
+      - 'scripts/**'
+      - 'kernel/**'
+      - 'apps/**'
+      - '.github/workflows/lint-packages.yml'
+  pull_request:
+    paths:
+      - 'build/**'
+      - 'scripts/**'
+      - 'kernel/**'
+      - 'apps/**'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint in Debian trixie container
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" -w /repo \
+            debian:trixie bash -c "
+              set -e
+              apt-get update -qq
+              apt-get install -y -qq live-build debootstrap
+              bash scripts/lint-distro.sh
+            "

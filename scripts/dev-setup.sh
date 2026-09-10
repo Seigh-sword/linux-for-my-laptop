@@ -51,7 +51,7 @@ npm install -g --silent yarn pnpm typescript 2>/dev/null || echo "    (global np
 
 # --- Java (OpenJDK 17 + Maven + Gradle) ---
 echo "==> [5/6] Java..."
-apt install -y openjdk-17-jdk maven gradle 2>/dev/null || apt install -y openjdk-17-jdk
+apt install -y openjdk-21-jdk maven gradle 2>/dev/null || apt install -y openjdk-21-jdk
 echo "    $(java -version 2>&1 | head -1)"
 
 # --- Kotlin (via SDKMAN, per-user — always latest) ---

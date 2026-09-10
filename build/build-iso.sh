@@ -47,6 +47,25 @@ cd "$WORKDIR"
 echo "⚙️  Configuring live-build..."
 bash lb-config.sh "$DEBIAN_DIST" "$ARCH" "$DISTRO_NAME" "$VERSION"
 
+# --- 2b. Install our customizations into the live-build config tree -----------
+# (lb build ONLY reads config/ — lists, hooks and includes must live there!)
+echo "📦 Installing arunlinux customizations into config/..."
+mkdir -p config/package-lists config/hooks/live config/hooks/bootstrap \
+         config/includes.installer config/includes.chroot
+cp package-lists/*.list.chroot config/package-lists/
+for d in live bootstrap; do
+  if [ -d "hooks/$d" ]; then
+    for h in "hooks/$d"/*; do
+      [ -f "$h" ] && cp "$h" "config/hooks/$d/"
+    done
+  fi
+done
+cp includes.installer/* config/includes.installer/
+cp -r arun-src config/includes.chroot/arun-src
+chmod +x config/hooks/live/* config/hooks/bootstrap/* 2>/dev/null || true
+echo "   package lists: $(ls config/package-lists/ | tr '\n' ' ')"
+echo "   hooks: $(ls config/hooks/live/ config/hooks/bootstrap/ 2>/dev/null | tr '\n' ' ')"
+
 # --- 3. Build -----------------------------------------------------------------
 echo "🔨 Building ISO (this takes 20–60 minutes)..."
 lb build

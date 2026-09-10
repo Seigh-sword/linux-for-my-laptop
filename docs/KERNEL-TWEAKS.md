@@ -52,7 +52,7 @@ session itself is protected. Check: `systemctl status earlyoom`.
 
 ## 7. Responsiveness sprinkles
 - **preload** — learns which apps you launch, preloads them.
-- **ananicy** — auto-nices background tasks so the UI stays smooth.
+- *(optional)* **ananicy-cpp** — auto-nices background tasks (`sudo apt install ananicy-cpp` if you want it).
 - **TCP buffers + fastopen** — snappier Wi-Fi.
 
 ## Verify everything after install

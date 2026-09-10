@@ -10,10 +10,13 @@ build/
 ├── build-iso.sh                 ← YOU ARE HERE (run with sudo on Debian 13)
 ├── lb-config.sh                 ← live-build settings (repos, bootloader, user…)
 ├── package-lists/*.list.chroot  ← what gets INSTALLED into the image
-├── hooks/live/*.hook.chroot     ← scripts that run INSIDE the image mid-build
-│   ├── 0100-enable-i386          → dpkg --add-architecture i386 (Wine!)
-│   ├── 0200-thirdparty-repos     → adds VS Code + Chrome repos, installs them
-│   └── 0300-arun-tweaks          → copies kernel tweaks, apps, wallpapers
+├── hooks/                       ← scripts that run INSIDE the image mid-build
+│   ├── bootstrap/0100-enable-i386 → dpkg --add-architecture i386 BEFORE packages (Wine!)
+│   └── live/
+│       ├── 0100-enable-i386      → re-ensures i386 (backup)
+│       ├── 0150-wine32           → installs wine32 + 32-bit libs (needs i386)
+│       ├── 0200-thirdparty-repos → adds VS Code + Chrome repos, installs them
+│       └── 0300-arun-tweaks      → copies kernel tweaks, apps, wallpapers
 └── includes.installer/preseed.cfg ← installer defaults (locale, timezone…)
 ```
 

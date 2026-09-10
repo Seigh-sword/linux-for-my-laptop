@@ -11,7 +11,7 @@ echo "==> Applying arunlinux kernel tweaks..."
 
 # --- Packages that make 4 GB feel like 6 GB ---
 apt update
-apt install -y earlyoom tlp tlp-rdw thermald irqbalance preload ananicy \
+apt install -y earlyoom tlp tlp-rdw thermald irqbalance preload \
   intel-microcode mesa-utils vulkan-tools 2>/dev/null || \
   apt install -y earlyoom tlp thermald intel-microcode mesa-utils
 

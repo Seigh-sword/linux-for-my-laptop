@@ -64,6 +64,10 @@ fonts-noto-color-emoji
 xfce4-whiskermenu-plugin
 plank
 
+# --- arunlinux apps runtime (Bash + YAD dialogs, ImageMagick thumbnails) ---
+yad
+imagemagick
+
 # --- Essentials every desktop needs ---
 firefox-esr
 mousepad

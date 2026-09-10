@@ -74,8 +74,8 @@ cp -r "$REPO_DIR/assets/wallpapers"/* /usr/share/backgrounds/arunlinux/
 cp "$REPO_DIR/assets/logo.png" /usr/share/arunlinux/logo.png
 ln -sf /usr/share/arunlinux/arun-pkg/arun-pkg /usr/local/bin/arun-pkg
 ln -sf /usr/share/arunlinux/arun-optimizer/arun-optimizer /usr/local/bin/arun-optimizer
-ln -sf /usr/share/arunlinux/arun-wallpapers/arun-wallpapers.py /usr/local/bin/arun-wallpapers
-ln -sf /usr/share/arunlinux/arun-welcome/arun-welcome.py /usr/local/bin/arun-welcome
+ln -sf /usr/share/arunlinux/arun-wallpapers/arun-wallpapers /usr/local/bin/arun-wallpapers
+ln -sf /usr/share/arunlinux/arun-welcome/arun-welcome /usr/local/bin/arun-welcome
 ln -sf /usr/share/arunlinux/arun-drivers/arun-drivers /usr/local/bin/arun-drivers
 for app in arun-welcome arun-wallpapers arun-optimizer; do
   [ -f "/usr/share/arunlinux/$app/$app.desktop" ] && \

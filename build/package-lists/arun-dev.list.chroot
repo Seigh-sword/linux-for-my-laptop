@@ -28,11 +28,10 @@ tree
 jq
 shellcheck
 
-# --- Python (needed by our custom apps + tooling) ---
+# --- Python (general scripting/tooling only — our apps are Bash + YAD) ---
 python3
 python3-pip
 python3-venv
-python3-tk
 pipx
 
 # --- Java (OpenJDK LTS; Temurin option in dev-setup.sh) ---

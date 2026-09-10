@@ -36,8 +36,8 @@ cp -r "$SRC/assets/wallpapers" /usr/share/backgrounds/arunlinux 2>/dev/null || {
 cp "$SRC/assets/logo.png" /usr/share/arunlinux/logo.png
 ln -sf /usr/share/arunlinux/arun-pkg/arun-pkg /usr/local/bin/arun-pkg
 ln -sf /usr/share/arunlinux/arun-optimizer/arun-optimizer /usr/local/bin/arun-optimizer
-ln -sf /usr/share/arunlinux/arun-wallpapers/arun-wallpapers.py /usr/local/bin/arun-wallpapers
-ln -sf /usr/share/arunlinux/arun-welcome/arun-welcome.py /usr/local/bin/arun-welcome
+ln -sf /usr/share/arunlinux/arun-wallpapers/arun-wallpapers /usr/local/bin/arun-wallpapers
+ln -sf /usr/share/arunlinux/arun-welcome/arun-welcome /usr/local/bin/arun-welcome
 ln -sf /usr/share/arunlinux/arun-drivers/arun-drivers /usr/local/bin/arun-drivers
 
 # --- Desktop entries ---

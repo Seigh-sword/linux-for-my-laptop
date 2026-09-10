@@ -1,0 +1,206 @@
+#!/bin/bash
+# ============================================================================
+# 🖼️ arunlinux Wallpaper Gallery — Bash + YAD edition
+# Collections: Minecraft / Spiderman / Ultra Graphics / All, with thumbnails.
+# Zero Python. Thumbnails cached in ~/.cache/arun-wallpapers.
+# ============================================================================
+set -uo pipefail
+
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+CACHE_DIR="$HOME/.cache/arun-wallpapers"
+CATEGORIES=("minecraft:🧱 Minecraft" "spiderman:🕷️ Spiderman" "ultra:✨ Ultra Graphics")
+
+find_root() {
+  for c in "/usr/share/backgrounds/arunlinux" \
+           "$APP_DIR/../../assets/wallpapers" \
+           "$HOME/linux-for-my-laptop/assets/wallpapers"; do
+    [ -d "$c" ] && { echo "$c"; return 0; }
+  done
+  return 1
+}
+
+ROOT="$(find_root)" || { echo "❌ No wallpapers found — run the installer first!"; exit 1; }
+mkdir -p "$CACHE_DIR"
+
+# --- thumbnail backend (first available tool wins) ---
+THUMB_TOOL=""
+if command -v convert >/dev/null 2>&1; then            THUMB_TOOL="convert"
+elif command -v magick >/dev/null 2>&1; then           THUMB_TOOL="magick"
+elif command -v gdk-pixbuf-thumbnailer >/dev/null 2>&1; then THUMB_TOOL="gdkpixbuf"
+elif command -v ffmpeg >/dev/null 2>&1; then           THUMB_TOOL="ffmpeg"
+fi
+
+thumb_for() {  # $1 = image → prints 256px thumbnail path (generates + caches it)
+  [ -z "$THUMB_TOOL" ] && return 1
+  local img="$1" hash thumb
+  hash="$(printf '%s' "$img" | md5sum | cut -d' ' -f1)"
+  thumb="$CACHE_DIR/$hash.png"
+  if [ ! -f "$thumb" ]; then
+    case "$THUMB_TOOL" in
+      convert)   convert "$img" -thumbnail '256x144^' -gravity center -extent 256x144 "$thumb" 2>/dev/null || return 1;;
+      magick)    magick "$img" -thumbnail '256x144^' -gravity center -extent 256x144 "$thumb" 2>/dev/null || return 1;;
+      gdkpixbuf) gdk-pixbuf-thumbnailer -s 256 "$img" "$thumb" 2>/dev/null || return 1;;
+      ffmpeg)    ffmpeg -y -v error -i "$img" -vf 'scale=256:-1' "$thumb" 2>/dev/null || return 1;;
+    esac
+  fi
+  printf '%s' "$thumb"
+}
+
+pretty_name() {  # "voxel-sunset.jpg" → "voxel sunset"
+  local n; n="$(basename "$1")"; n="${n%.*}"; n="${n//-/ }"; n="${n//_/ }"
+  printf '%s' "$n"
+}
+
+list_images() {  # $1 = folder, or "" for all
+  shopt -s nullglob
+  local pats
+  if [ -n "$1" ]; then pats=("$ROOT/$1"/*.jpg "$ROOT/$1"/*.jpeg "$ROOT/$1"/*.png)
+  else pats=("$ROOT"/*/*.jpg "$ROOT"/*/*.jpeg "$ROOT"/*/*.png); fi
+  [ "${#pats[@]}" -eq 0 ] && return 0
+  printf '%s\n' "${pats[@]}" | sort
+}
+
+set_wallpaper() {  # $1 = image → 0 on success (XFCE + LXQt + fallbacks)
+  local path="$1" ok=1 prop
+  if command -v xfconf-query >/dev/null 2>&1; then
+    while IFS= read -r prop; do
+      if [ -n "$prop" ]; then
+        xfconf-query -c xfce4-desktop -p "$prop" -s "$path" 2>/dev/null && ok=0
+      fi
+    done < <(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep 'last-image$' || true)
+  fi
+  if command -v pcmanfm-qt >/dev/null 2>&1; then
+    pcmanfm-qt --set-wallpaper "$path" 2>/dev/null && ok=0
+  fi
+  if command -v feh >/dev/null 2>&1; then
+    feh --bg-fill "$path" 2>/dev/null && ok=0
+  elif command -v nitrogen >/dev/null 2>&1; then
+    nitrogen --set-zoom-fill "$path" 2>/dev/null && ok=0
+  fi
+  return $ok
+}
+
+open_folder() {  # $1 = dir
+  for fm in thunar pcmanfm-qt xdg-open; do
+    if command -v "$fm" >/dev/null 2>&1; then "$fm" "$1" & return; fi
+  done
+}
+
+# --- GUI -------------------------------------------------------------------
+gui_pick_category() {
+  local rows=() c
+  for c in "${CATEGORIES[@]}"; do rows+=("${c#*:}"); done
+  rows+=("🎲 All")
+  yad --title="arunlinux Wallpapers" --width=430 --height=360 \
+    --text="<big><b>🖼️ Wallpaper Gallery</b></big>\nPick a collection:" \
+    --list --no-headers --column="Collection" "${rows[@]}" \
+    --print-column=1 --separator="" \
+    --button="Open folder:2" --button="Cancel:1" --button="Show:0"
+}
+
+gui_gallery() {  # $1 = folder ("" = all), $2 = title
+  local folder="$1" title="$2"
+  local imgs=()
+  mapfile -t imgs < <(list_images "$folder")
+  [ -n "${imgs[0]:-}" ] || imgs=()
+  if [ "${#imgs[@]}" -eq 0 ]; then
+    yad --info --title="arunlinux" --width=420 \
+      --text="No images here yet.\nDrop .jpg files into:\n<b>$ROOT/${folder:-.}</b>" \
+      --button="Back:0"
+    return
+  fi
+  local rows=() img th cols=() print_col=2
+  if [ -n "$THUMB_TOOL" ]; then
+    for img in "${imgs[@]}"; do
+      th="$(thumb_for "$img" 2>/dev/null)" || th="$img"
+      [ -z "$th" ] && th="$img"
+      rows+=("$th|$(pretty_name "$img")|$img")
+    done
+    cols=(--column="Preview:IMG" --column="Name" --column="Path:HD")
+    print_col=3
+  else
+    for img in "${imgs[@]}"; do rows+=("$(pretty_name "$img")|$img"); done
+    cols=(--column="Name" --column="Path:HD")
+  fi
+  local sel rc
+  while true; do
+    sel="$(yad --title="arunlinux Wallpapers — $title" --width=720 --height=540 \
+      --text="<b>$title</b> — select one, then <b>Set wallpaper</b>:" \
+      --list "${cols[@]}" "${rows[@]}" \
+      --print-column=$print_col --separator="" \
+      --button="Back:3" --button="Open folder:2" --button="Set wallpaper:0")"
+    rc=$?
+    case $rc in
+      0)
+        if [ -n "$sel" ] && [ -f "$sel" ]; then
+          if set_wallpaper "$sel"; then
+            yad --info --title="arunlinux" --width=400 \
+              --text="Wallpaper applied! 🎉\n<b>$(basename "$sel")</b>" --button="Nice!:0"
+          else
+            yad --warning --title="arunlinux" --width=420 \
+              --text="Couldn't set it automatically.\nFile is at:\n$sel" --button="OK:0"
+          fi
+        fi
+        ;;
+      2) open_folder "$ROOT/${folder:-.}" ;;
+      *) return ;;
+    esac
+  done
+}
+
+gui_loop() {
+  local sel rc folder
+  while true; do
+    sel="$(gui_pick_category)"; rc=$?
+    case $rc in
+      2) open_folder "$ROOT"; continue;;
+      0) :;;
+      *) exit 0;;
+    esac
+    [ -z "$sel" ] && continue
+    folder=""
+    case "$sel" in
+      *Minecraft*) folder="minecraft";;
+      *Spiderman*) folder="spiderman";;
+      *Ultra*)     folder="ultra";;
+    esac
+    gui_gallery "$folder" "$sel"
+  done
+}
+
+# --- text fallback -----------------------------------------------------------
+text_loop() {
+  local c folder n i img imgs
+  while true; do
+    echo ""
+    echo "════════ 🖼️ arunlinux Wallpapers ════════"
+    echo "  1) 🧱 Minecraft   2) 🕷️ Spiderman"
+    echo "  3) ✨ Ultra       4) 🎲 All"
+    echo "  0) Exit"
+    read -rp "Choose: " c
+    case "$c" in
+      1) folder="minecraft";; 2) folder="spiderman";; 3) folder="ultra";; 4) folder="";;
+      0) exit 0;; *) continue;;
+    esac
+    imgs=()
+    mapfile -t imgs < <(list_images "$folder")
+    [ -n "${imgs[0]:-}" ] || imgs=()
+    [ "${#imgs[@]}" -eq 0 ] && { echo "No images here yet."; continue; }
+    i=1
+    for img in "${imgs[@]}"; do echo "  $i) $(pretty_name "$img")"; i=$((i+1)); done
+    read -rp "Pick a number (0 = back): " n
+    [[ "$n" =~ ^[0-9]+$ ]] || continue
+    if [ "$n" -ge 1 ] 2>/dev/null && [ "$n" -le "${#imgs[@]}" ] 2>/dev/null; then
+      if set_wallpaper "${imgs[$((n-1))]}"; then echo "✅ Wallpaper applied! 🎉"
+      else echo "❌ Couldn't set it (no xfconf/pcmanfm/feh here?)"; fi
+    fi
+  done
+}
+
+# --- main --------------------------------------------------------------------
+if command -v yad >/dev/null 2>&1 && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+  gui_loop
+else
+  echo "(yad not found — text mode. Install it: sudo apt install yad)"
+  text_loop
+fi

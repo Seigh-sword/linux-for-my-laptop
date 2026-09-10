@@ -48,12 +48,17 @@ apt install -y --no-install-recommends \
   lxqt-notificationd lxqt-policykit openbox obconf-qt 2>/dev/null || \
   echo "⚠️  Some LXQt packages unavailable on this base — continuing."
 
-# --- REMOVE bloat: heavy GNOME bits, extra XFCE toys, games ---
+# --- arunlinux apps runtime: YAD dialogs + ImageMagick (wallpaper thumbs) ---
+# Our apps are pure Bash + YAD — no Python GUI stack needed.
+apt install -y --no-install-recommends yad imagemagick
+
+# --- REMOVE bloat: heavy GNOME bits, extra XFCE toys, games, python-tk ---
 apt purge -y --autoremove \
   parole ristretto xfce4-dict xfce4-notes gigolo orage xfburn \
   gnome-shell gnome-session gnome-control-center gnome-software \
   gnome-music gnome-videos totem rhythmbox shotwell \
   aisleriot gnome-mines gnome-sudoku gnome-mahjongg \
+  python3-tk \
   thunderbird* 2>/dev/null || true
 apt autoremove -y && apt autoclean
 

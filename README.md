@@ -27,7 +27,7 @@ Daily-driver ready for: **VS Code, Chrome, coding (Rust, C/C++, Go, Node, Java, 
 ├── build/            # ISO factory (live-build config, package lists, hooks)
 ├── scripts/          # One-shot setup scripts (also used inside the ISO build)
 ├── kernel/           # Kernel/boot/RAM tuning (sysctl, zram, grub, i915)
-├── apps/             # Custom arunlinux apps (Python + bash)
+├── apps/             # Custom arunlinux apps (Bash + YAD — zero Python, instant startup)
 │   ├── arun-welcome/     # Welcome Center
 │   ├── arun-wallpapers/  # Wallpaper Gallery (Minecraft / Spiderman / Ultra + more)
 │   ├── arun-optimizer/   # RAM/battery/startup optimizer

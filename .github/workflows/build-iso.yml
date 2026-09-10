@@ -16,9 +16,23 @@ on:
       - 'apps/**'
       - 'assets/**'
       - '.github/workflows/build-iso.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'build/**'
+      - 'scripts/**'
+      - 'kernel/**'
+      - 'apps/**'
+      - 'assets/**'
+      - '.github/workflows/build-iso.yml'
   schedule:
     - cron: '0 2 * * 0'   # fresh ISO every Sunday at 02:00 UTC
   workflow_dispatch:
+
+# New pushes cancel stale runs on the same branch (saves runner minutes)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-iso:

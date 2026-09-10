@@ -29,7 +29,7 @@ apt install -y --no-install-recommends \
   xfce4-session xfwm4 xfce4-panel xfce4-settings xfce4-power-manager \
   xfce4-screenshooter xfce4-taskmanager xfce4-terminal xfce4-whiskermenu-plugin \
   thunar thunar-archive-plugin thunar-volman tumbler \
-  gvfs gvfs-backends udisks2 policykit-1 polkitd-pkla \
+  gvfs gvfs-backends udisks2 polkitd \
   network-manager network-manager-gnome pavucontrol pasystray \
   arc-theme papirus-icon-theme plank \
   fonts-dejavu fonts-liberation fonts-noto fonts-noto-color-emoji \

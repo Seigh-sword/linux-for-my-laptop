@@ -31,7 +31,7 @@ apt install -y firmware-linux-free firmware-linux-nonfree firmware-iwlwifi \
 echo "==> Installing input / sound / laptop extras..."
 apt install -y xserver-xorg-input-libinput xserver-xorg-input-synaptics \
   pipewire pipewire-pulse wireplumber pavucontrol \
-  laptop-mode-tools acpi-support iw wpasupplicant powertop 2>/dev/null || true
+  acpi-support iw wpasupplicant powertop 2>/dev/null || true
 
 echo "==> Installing printer + scanner support..."
 apt install -y cups cups-filters system-config-printer hplip simple-scan 2>/dev/null || true

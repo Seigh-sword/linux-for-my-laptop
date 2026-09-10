@@ -36,8 +36,7 @@ tumbler
 gvfs
 gvfs-backends
 udisks2
-policykit-1
-polkitd-pkla
+polkitd
 pavucontrol
 pasystray
 network-manager

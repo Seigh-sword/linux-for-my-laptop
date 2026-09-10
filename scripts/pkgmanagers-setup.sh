@@ -9,7 +9,7 @@ set -euo pipefail
 echo "==> [1/6] apt: core tools..."
 apt update
 apt install -y curl wget gpg apt-transport-https software-properties-common \
-  flatpak snapd libfuse2 libfuse3-3 fuse3 appstream distrobox podman \
+  flatpak snapd libfuse2 fuse3 appstream distrobox podman \
   gnome-software-plugin-flatpak 2>/dev/null || \
   apt install -y curl wget gpg flatpak snapd libfuse2 distrobox podman
 

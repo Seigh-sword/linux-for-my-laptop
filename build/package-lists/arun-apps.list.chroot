@@ -2,13 +2,15 @@
 # arunlinux — daily apps + all the package managers
 # VS Code + Chrome repos are added by scripts/pkgmanagers-setup.sh during
 # build (chroot hook) so we always ship the latest releases.
+#
+# NOTE (trixie): policykit-1 → polkitd (renamed), polkitd-pkla removed,
+# libfuse3-3 removed (fuse3 pulls its own lib), neofetch removed (→ inxi).
 # ============================================================================
 
 # --- Package managers ---
 flatpak
 snapd
 libfuse2
-libfuse3-3
 fuse3
 appstream
 
@@ -29,7 +31,7 @@ synaptic
 bleachbit
 redshift
 flameshot
-neofetch
+inxi
 earlyoom
 zram-tools
 preload

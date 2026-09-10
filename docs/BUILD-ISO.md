@@ -37,7 +37,7 @@ sudo bash build/build-iso.sh
 | Add/remove apps | `build/package-lists/*.list.chroot` |
 | Change kernel/RAM tuning | `kernel/*` (auto-copied by hook 0300) |
 | Add your own first-boot script | new `build/hooks/live/04*.hook.chroot` (+ `chmod +x`) |
-| Change live username | `build/lb-config.sh` (`--username`) |
+| Change live username | `build/lb-config.sh` (`--bootappend-live username=...`) |
 | Change boot splash options | `build/lb-config.sh` (`--bootappend-live`) |
 
 After editing: `cd iso-build && sudo lb clean && sudo lb build` for a fast rebuild.

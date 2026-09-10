@@ -16,13 +16,16 @@ shift 4 2>/dev/null || true
 
 LB_CACHE="${LB_CACHE:-true}"
 
+# NOTE (trixie live-build 1:20250505): flags are SINGULAR (--architecture,
+# --binary-image), --cache-stages takes stage names (not true/false, dropped),
+# and --username/--hostname don't exist (live user comes from --bootappend-live).
 lb config noauto \
   --mode debian \
   --system live \
-  --architectures "$ARCH" \
+  --architecture "$ARCH" \
   --distribution "$DEBIAN_DIST" \
   --archive-areas "main contrib non-free non-free-firmware" \
-  --binary-images iso-hybrid \
+  --binary-image iso-hybrid \
   --bootloaders "grub-efi grub-pc" \
   --debian-installer live \
   --debian-installer-distribution "$DEBIAN_DIST" \
@@ -39,13 +42,10 @@ lb config noauto \
   --cache "$LB_CACHE" \
   --cache-indices "$LB_CACHE" \
   --cache-packages "$LB_CACHE" \
-  --cache-stages "$LB_CACHE" \
   --iso-publisher "arunlinux" \
   --iso-volume "${DISTRO_NAME}-${VERSION}" \
   --iso-application "${DISTRO_NAME} ${VERSION}" \
   --image-name "live-image-${ARCH}" \
-  --username "arun" \
-  --hostname "arunlinux" \
   --bootappend-live "boot=live components username=arun hostname=arunlinux quiet splash intel_iommu=on i915.enable_psr=1 i915.enable_fbc=1 zswap.enabled=0" \
   "$@"
 

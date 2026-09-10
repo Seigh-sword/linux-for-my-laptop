@@ -1,0 +1,147 @@
+#!/bin/bash
+# ============================================================================
+# 📦 arun-pkg — ONE command for ALL package managers
+#   apt → flatpak → snap → npm → pacman (Arch container) → AppImage hints
+# ----------------------------------------------------------------------------
+# Usage:
+#   arun-pkg install <app>     install from the best available source
+#   arun-pkg search <app>      search everywhere
+#   arun-pkg remove <app>      remove from wherever it came from
+#   arun-pkg sysupdate         update EVERYTHING (apt+flatpak+snap+npm)
+#   arun-pkg info <app>        show which sources provide it
+# ============================================================================
+set -uo pipefail
+
+GREEN='\033[1;32m'; CYAN='\033[1;36m'; YELLOW='\033[1;33m'; RED='\033[1;31m'; NC='\033[0m'
+say() { echo -e "${CYAN}$*${NC}"; }
+ok()  { echo -e "${GREEN}✅ $*${NC}"; }
+warn(){ echo -e "${YELLOW}⚠️  $*${NC}"; }
+err() { echo -e "${RED}❌ $*${NC}"; }
+
+need_root() { if [ "$(id -u)" -ne 0 ]; then err "Run with sudo: sudo arun-pkg $*"; exit 1; fi; }
+
+# Famous apps → best source mapping (saves RAM/disk on a 4 GB machine)
+best_source() {
+  case "$1" in
+    code|vscode|visual-studio-code) echo "apt:code";;               # MS repo
+    google-chrome|chrome)           echo "apt:google-chrome-stable";;
+    vlc|gimp|kdenlive|obs)          echo "flatpak";;                 # fresher via flathub
+    spotify|slack|discord)          echo "flatpak";;
+    node*|typescript|yarn|pnpm)     echo "npm";;
+    *)                              echo "auto";;
+  esac
+}
+
+do_install() {
+  local pkg="$1"; local hint; hint="$(best_source "$pkg")"
+  say "📦 Installing '$pkg' (hint: $hint)..."
+
+  # 1. apt (prefer native .deb — smallest RAM/disk footprint)
+  if apt-cache show "$pkg" >/dev/null 2>&1; then
+    need_root install "$pkg"
+    sudo apt install -y "$pkg" && { ok "'$pkg' installed via apt."; return 0; }
+  fi
+  case "$hint" in
+    apt:*) need_root install "$pkg"; sudo apt install -y "${hint#apt:}" && { ok "'$pkg' installed via apt."; return 0; };;
+  esac
+
+  # 2. flatpak
+  if command -v flatpak >/dev/null 2>&1; then
+    if flatpak search "$pkg" 2>/dev/null | tail -n +1 | grep -qi "$pkg"; then
+      need_root install "$pkg"
+      local appid; appid="$(flatpak search "$pkg" 2>/dev/null | awk 'NR==1{print $1}')"
+      sudo flatpak install -y flathub "$appid" && { ok "'$pkg' installed via flatpak ($appid)."; return 0; }
+    fi
+  fi
+
+  # 3. snap
+  if command -v snap >/dev/null 2>&1; then
+    if snap find "$pkg" 2>/dev/null | grep -qi "$pkg"; then
+      need_root install "$pkg"
+      sudo snap install "$pkg" && { ok "'$pkg' installed via snap."; return 0; }
+    fi
+  fi
+
+  # 4. npm (global CLI tools)
+  if [ "$hint" = "npm" ] && command -v npm >/dev/null 2>&1; then
+    need_root install "$pkg"
+    sudo npm install -g "$pkg" && { ok "'$pkg' installed via npm."; return 0; }
+  fi
+
+  # 5. pacman via Arch distrobox container
+  if command -v distrobox >/dev/null 2>&1; then
+    warn "Not in apt/flatpak/snap. Trying Arch container (pacman)..."
+    distrobox list 2>/dev/null | grep -q arch || distrobox create -i archlinux:latest -n arch -Y
+    distrobox enter arch -- sudo pacman -S --noconfirm "$pkg" && {
+      ok "'$pkg' installed via pacman (arch container). Run: distrobox enter arch -- $pkg"
+      echo "   Tip: export it to your menu: distrobox enter arch -- distrobox-export --app $pkg"
+      return 0
+    }
+  fi
+
+  err "'$pkg' not found anywhere. Try 'arun-pkg search $pkg' or grab an AppImage:"
+  echo "   → https://appimagesearch.org • Gear Lever manages AppImages for you."
+  return 1
+}
+
+do_search() {
+  local pkg="$1"
+  say "🔍 Searching everywhere for '$pkg'..."
+  echo "--- apt ---";      apt-cache search "$pkg" 2>/dev/null | head -5 || echo "(apt n/a)"
+  echo "--- flatpak ---";  flatpak search "$pkg" 2>/dev/null | head -5 || echo "(flatpak n/a)"
+  echo "--- snap ---";     snap find "$pkg" 2>/dev/null | head -8 || echo "(snap n/a)"
+  echo "--- npm ---";      npm search "$pkg" 2>/dev/null | head -5 || echo "(npm n/a)"
+}
+
+do_remove() {
+  local pkg="$1"; need_root remove "$pkg"; local removed=0
+  dpkg -l "$pkg" >/dev/null 2>&1 && { sudo apt purge -y "$pkg"; removed=1; }
+  flatpak list --app 2>/dev/null | grep -qi "$pkg" && { sudo flatpak uninstall -y "$pkg"; removed=1; }
+  snap list 2>/dev/null | grep -qi "^$pkg " && { sudo snap remove "$pkg"; removed=1; }
+  [ "$removed" -eq 1 ] && ok "Removed '$pkg'." || warn "'$pkg' doesn't seem installed."
+  sudo apt autoremove -y 2>/dev/null || true
+}
+
+do_sysupdate() {
+  need_root sysupdate
+  say "🔄 Updating EVERYTHING..."
+  sudo apt update && sudo apt full-upgrade -y
+  flatpak update -y 2>/dev/null || true
+  snap refresh 2>/dev/null || true
+  npm update -g 2>/dev/null || true
+  ok "System fully updated. 🎉"
+}
+
+do_info() {
+  local pkg="$1"
+  say "ℹ️  Sources for '$pkg': best = $(best_source "$pkg")"
+  apt-cache show "$pkg" >/dev/null 2>&1 && echo "  • apt: YES ($(apt-cache show "$pkg" | grep -m1 Version))"
+  flatpak search "$pkg" 2>/dev/null | head -3 | sed 's/^/  • flatpak: /'
+  echo "  • AppImage: check https://appimagesearch.org"
+  echo "  • pacman: available inside 'arch' distrobox container"
+}
+
+usage() {
+  cat <<'EOF'
+📦 arun-pkg — one command for every package manager
+Usage:
+  arun-pkg install <app>     install from best source (apt→flatpak→snap→npm→pacman)
+  arun-pkg search <app>      search apt + flatpak + snap + npm
+  arun-pkg remove <app>      remove from wherever it lives
+  arun-pkg sysupdate         update apt + flatpak + snap + npm, all at once
+  arun-pkg info <app>        show which sources provide an app
+Examples:
+  sudo arun-pkg install vlc
+  arun-pkg search obs
+  sudo arun-pkg sysupdate
+EOF
+}
+
+case "${1:-help}" in
+  install) shift; [ $# -eq 0 ] && { usage; exit 1; }; for p in "$@"; do do_install "$p"; done;;
+  search)  shift; [ $# -eq 0 ] && { usage; exit 1; }; do_search "$1";;
+  remove)  shift; [ $# -eq 0 ] && { usage; exit 1; }; do_remove "$1";;
+  sysupdate) do_sysupdate;;
+  info)    shift; [ $# -eq 0 ] && { usage; exit 1; }; do_info "$1";;
+  *) usage;;
+esac

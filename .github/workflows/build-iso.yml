@@ -1,0 +1,54 @@
+# ============================================================================
+# Build the arunlinux ISO in the cloud (GitHub Actions)
+# Trigger: push to main, or manual "Run workflow". ISO → Artifacts (7 days).
+# Note: live-build needs privileges → we build inside a privileged container.
+# ============================================================================
+name: Build arunlinux ISO
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'build/**'
+      - 'scripts/**'
+      - 'kernel/**'
+      - 'apps/**'
+      - 'assets/**'
+      - '.github/workflows/build-iso.yml'
+  workflow_dispatch:
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache || true
+          df -h
+
+      - name: Build ISO in privileged Debian container
+        run: |
+          docker run --privileged --rm \
+            -v "$PWD:/repo" -w /repo \
+            debian:trixie bash -c "
+              set -e
+              apt-get update
+              apt-get install -y live-build debootstrap cdebootstrap \
+                squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin \
+                mtools dosfstools parted curl git ca-certificates
+              # live-build hooks + scripts must be executable
+              chmod +x build/build-iso.sh build/lb-config.sh build/hooks/live/* 2>/dev/null || true
+              VERSION='${{ github.run_number }}' bash build/build-iso.sh
+            "
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arunlinux-iso
+          path: |
+            out/*.iso
+            out/*.sha256
+          retention-days: 7

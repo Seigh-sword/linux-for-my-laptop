@@ -1,0 +1,45 @@
+# ============================================================================
+# arunlinux — daily apps + all the package managers
+# VS Code + Chrome repos are added by scripts/pkgmanagers-setup.sh during
+# build (chroot hook) so we always ship the latest releases.
+# ============================================================================
+
+# --- Package managers ---
+flatpak
+snapd
+libfuse2
+libfuse3-3
+fuse3
+appstream
+
+# --- Daily apps from Debian repos ---
+gimp
+vlc
+transmission-gtk
+thunderbird
+libreoffice-writer
+libreoffice-calc
+libreoffice-impress
+gnome-calculator
+baobab
+gnome-disk-utility
+gparted
+timeshift
+synaptic
+bleachbit
+redshift
+flameshot
+neofetch
+earlyoom
+zram-tools
+preload
+ananicy
+
+# --- Fonts for VS Code / Chrome / docs ---
+fonts-firacode
+fonts-jetbrains-mono
+fonts-cascadia-code
+
+# --- Network extras ---
+openssh-client
+network-manager-openvpn-gnome

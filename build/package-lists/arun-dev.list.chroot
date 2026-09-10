@@ -1,0 +1,50 @@
+# ============================================================================
+# arunlinux — developer stack (apt-installable part)
+# Rust / Go / Node / Java / Kotlin toolchains are installed by
+# scripts/dev-setup.sh (needs network at install time), because rustup,
+# sdkman etc. always fetch the latest release.
+# ============================================================================
+
+# --- C / C++ ---
+build-essential
+clang
+clang-format
+cmake
+ninja-build
+gdb
+pkg-config
+valgrind
+
+# --- Version control + CLI basics ---
+git
+curl
+wget
+unzip
+zip
+neovim
+tmux
+htop
+tree
+jq
+shellcheck
+
+# --- Python (needed by our custom apps + tooling) ---
+python3
+python3-pip
+python3-venv
+python3-tk
+pipx
+
+# --- Java (OpenJDK LTS; Temurin option in dev-setup.sh) ---
+openjdk-17-jdk
+maven
+gradle
+
+# --- Containers (for pacman-via-Arch + clean dev envs) ---
+distrobox
+podman
+
+# --- Docs / misc ---
+man-db
+manpages-dev
+tldr

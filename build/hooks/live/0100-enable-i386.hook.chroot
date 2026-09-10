@@ -1,0 +1,6 @@
+#!/bin/sh
+# live-build chroot hook: enable 32-bit (i386) arch for Wine + Steam + drivers
+set -e
+echo "==> [arunlinux hook] enabling i386 architecture..."
+dpkg --add-architecture i386
+apt-get update

@@ -1,0 +1,106 @@
+#!/bin/bash
+# ============================================================================
+# ⚡ arun-optimizer — RAM / battery / startup optimizer for 4 GB laptops
+# Usage: arun-optimizer   (interactive menu)   |   arun-optimizer status
+# ============================================================================
+set -uo pipefail
+
+GREEN='\033[1;32m'; CYAN='\033[1;36m'; YELLOW='\033[1;33m'; RED='\033[1;31m'; NC='\033[0m'
+say() { echo -e "${CYAN}$*${NC}"; }
+ok()  { echo -e "${GREEN}✅ $*${NC}"; }
+warn(){ echo -e "${YELLOW}⚠️  $*${NC}"; }
+
+status() {
+  say "════════ 🖥️  arunlinux status ════════"
+  echo -n "Memory : "; free -h | awk 'NR==2{print $3" used / "$2" total ("$7" avail)"}'
+  echo -n "Swap   : "; (swapon --show 2>/dev/null | tail -n +2 | awk '{print $1" "$3" pri="$5}' | head -3) || echo none
+  echo -n "zram   : "; zramctl 2>/dev/null | tail -n +2 | head -2 || echo "not active"
+  echo -n "Swappiness: "; cat /proc/sys/vm/swappiness
+  echo -n "CPU temp  : "; (sensors 2>/dev/null | grep -m1 -i 'package\|core 0' || cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{print $1/1000"°C"}') || echo unknown
+  echo -n "Battery : "; (upower -i $(upower -e | grep BAT) 2>/dev/null | grep -E 'percentage|state' | tr '\n' ' ') || echo "no battery / desktop"
+  echo -n "Top RAM hogs:"; ps aux --sort=-%mem | awk 'NR<=6{printf "\n   %-25s %s", $11, $4"%"}'; echo
+  echo -n "earlyoom: "; systemctl is-active earlyoom 2>/dev/null || echo "not running (run: sudo systemctl enable --now earlyoom)"
+  echo -n "TLP power: "; tlp-stat -s 2>/dev/null | grep -m1 "power source" || echo unknown
+}
+
+clean_ram() {
+  say "🧹 Safe RAM clean (drops only reclaimable caches — your apps stay open)..."
+  sync
+  if [ "$(id -u)" -eq 0 ]; then echo 1 > /proc/sys/vm/drop_caches && ok "Caches dropped.";
+  else sudo sh -c 'sync; echo 1 > /proc/sys/vm/drop_caches' && ok "Caches dropped."; fi
+  free -h | head -2
+}
+
+startup_list() {
+  say "🚀 Startup programs (autostart):"
+  for d in "$HOME/.config/autostart" /etc/xdg/autostart; do
+    [ -d "$d" ] || continue
+    echo "  — $d:"
+    ls "$d" 2>/dev/null | sed 's/^/     • /' || echo "     (empty)"
+  done
+  echo ""
+  echo "  tip: delete a file from ~/.config/autostart to stop it starting."
+  echo "  tip: GUI: Settings → Session and Startup → Application Autostart"
+}
+
+battery_saver() {
+  say "🔋 Battery saver: forcing power-save mode..."
+  sudo tlp bat || warn "tlp not installed"
+  echo "powersave" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true
+  ok "Battery saver ON. (Back to normal: sudo tlp ac)"
+}
+
+performance() {
+  say "🚀 Performance mode..."
+  sudo tlp ac || warn "tlp not installed"
+  echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true
+  ok "Performance mode ON."
+}
+
+clean_disk() {
+  say "💽 Disk clean..."
+  sudo apt autoremove -y && sudo apt autoclean
+  flatpak uninstall --unused -y 2>/dev/null || true
+  journalctl --vacuum-time=7d 2>/dev/null || sudo journalctl --vacuum-time=7d
+  rm -rf "$HOME/.cache/thumbnails" "$HOME/.cache/mozilla"/* 2>/dev/null || true
+  ok "Disk cleaned."; df -h / | tail -1
+}
+
+chrome_diet() {
+  cat <<'EOF'
+🍔 Chrome on 4 GB — survival tips:
+  1. Turn ON "Memory Saver":  ⋮ → Settings → Performance → Memory Saver
+  2. Turn ON "Energy Saver" on the same page
+  3. Keep ≤ 10 tabs; use OneTab / tab groups for the rest
+  4. chrome://settings → System → turn OFF "Continue running background apps"
+  5. Use uBlock Origin (blocks heavy ads = less RAM)
+  6. For video calls, close VS Code extensions you don't need
+EOF
+}
+
+menu() {
+  while true; do
+    echo ""
+    say "════════ ⚡ arun-optimizer ════════"
+    echo "  1) 📊 System status"
+    echo "  2) 🧹 Clean RAM (safe)"
+    echo "  3) 🚀 List startup programs"
+    echo "  4) 🔋 Battery saver ON"
+    echo "  5) 🚀 Performance mode ON"
+    echo "  6) 💽 Clean disk (apt, flatpak, logs)"
+    echo "  7) 🍔 Chrome-on-4GB tips"
+    echo "  0) Exit"
+    read -rp "Choose: " c
+    case "$c" in
+      1) status;; 2) clean_ram;; 3) startup_list;;
+      4) battery_saver;; 5) performance;; 6) clean_disk;; 7) chrome_diet;;
+      0) exit 0;; *) warn "Pick 0-7";;
+    esac
+  done
+}
+
+case "${1:-menu}" in
+  status) status;; clean) clean_ram;; startup) startup_list;;
+  bat) battery_saver;; perf) performance;; disk) clean_disk;; chrome) chrome_diet;;
+  *) menu;;
+esac

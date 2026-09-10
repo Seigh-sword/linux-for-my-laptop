@@ -1,0 +1,20 @@
+#!/bin/bash
+# live-build chroot hook: add VS Code + Google Chrome repos, install them.
+# Runs INSIDE the chroot during ISO build (network available).
+set -e
+echo "==> [arunlinux hook] adding VS Code + Chrome repos..."
+
+apt-get install -y wget gpg apt-transport-https
+
+# --- Visual Studio Code (Microsoft repo) ---
+wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/ms-vscode.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/ms-vscode.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+
+# --- Google Chrome (Google repo) ---
+wget -qO- https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+
+apt-get update
+apt-get install -y code google-chrome-stable || echo "⚠️  code/chrome install failed (no network during build?) — post-install script will retry"
+
+echo "==> [arunlinux hook] third-party repos done."

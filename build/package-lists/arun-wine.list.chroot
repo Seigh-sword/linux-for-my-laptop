@@ -1,0 +1,11 @@
+# ============================================================================
+# arunlinux — Windows compatibility (Wine)
+# Note: i386 architecture is enabled by a chroot hook (see hooks/live/).
+# ============================================================================
+
+wine64
+# NOTE: wine32 is installed by hooks/live/0150-wine32.hook.chroot instead —
+# it needs the i386 arch enabled first (see hooks/bootstrap/0100-*).
+winetricks
+playonlinux
+dosbox

@@ -1,0 +1,49 @@
+# ============================================================================
+# arunlinux — drivers (the "Debian + Ubuntu drivers stitched together" part)
+# Intel CPU/iGPU focused, plus every common laptop Wi-Fi / sound / touchpad
+# firmware so it "just works" like Ubuntu does.
+# ============================================================================
+
+# --- Intel CPU + iGPU (your laptop) ---
+intel-microcode
+mesa-utils
+mesa-va-drivers
+mesa-vdpau-drivers
+mesa-vulkan-drivers
+vulkan-tools
+intel-media-va-driver
+i965-va-driver
+vainfo
+thermald
+tlp
+tlp-rdw
+powertop
+irqbalance
+
+# --- Firmware mega-pack (Ubuntu-style "just works") ---
+firmware-linux-free
+firmware-linux-nonfree
+firmware-iwlwifi
+firmware-realtek
+firmware-atheros
+firmware-brcm80211
+firmware-misc-nonfree
+firmware-sof-signed
+
+# --- Input / sound / laptop extras ---
+xserver-xorg-input-synaptics
+xserver-xorg-input-libinput
+pipewire
+pipewire-pulse
+wireplumber
+pavucontrol
+acpi-support
+iw
+wpasupplicant
+usb-modeswitch
+modemmanager
+# Printing: gutenprint (Epson/Canon) + hplip (HP) + driverless IPP via cups-filters
+# (NOTE: laptop-mode-tools deliberately absent — TLP handles power instead)
+printer-driver-gutenprint
+hplip
+simple-scan

@@ -1,0 +1,158 @@
+#!/bin/bash
+# ============================================================================
+# 🌟 arunlinux Welcome Center — Bash + YAD edition
+# Zero Python. Instant startup. ~5 MB RAM. Hack it — it's just bash!
+# ============================================================================
+set -uo pipefail
+
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+LOGO=""
+for c in "/usr/share/arunlinux/logo.png" \
+         "$APP_DIR/../../assets/logo.png" \
+         "$HOME/linux-for-my-laptop/assets/logo.png"; do
+  [ -f "$c" ] && LOGO="$c" && break
+done
+
+# --- helpers ---------------------------------------------------------------
+run_term() {  # $1 = shell command to run inside a terminal window
+  if [ "${ARUN_TEXT:-0}" = "1" ]; then bash -c "$1"; return; fi
+  local tmp; tmp="$(mktemp /tmp/arun-term-XXXXXX.sh)"
+  printf '#!/bin/bash\n%s\n\necho\nread -rp "Done - press Enter to close..." _\n' "$1" > "$tmp"
+  chmod +x "$tmp"
+  if command -v qterminal >/dev/null 2>&1; then
+    qterminal -e "$tmp" &
+  elif command -v xfce4-terminal >/dev/null 2>&1; then
+    xfce4-terminal -e "$tmp" &
+  elif command -v xterm >/dev/null 2>&1; then
+    xterm -e "$tmp" &
+  else
+    bash "$tmp"
+  fi
+}
+
+run_gui() {  # $1 = app name (PATH first, repo-next-door fallback)
+  if command -v "$1" >/dev/null 2>&1; then "$1" & return; fi
+  local sib="$APP_DIR/../$1/$1"
+  if [ -x "$sib" ]; then "$sib" & return; fi
+  if command -v yad >/dev/null 2>&1; then
+    yad --info --title="arunlinux" --width=400 \
+      --text="<b>$1</b> is not installed yet.\nRun the installer first!" --button="OK:0"
+  else
+    echo "$1 is not installed yet. Run the installer first!"
+  fi
+}
+
+find_script() {  # $1 = filename → prints full path
+  for c in "/usr/share/arunlinux/scripts/$1" \
+           "$HOME/linux-for-my-laptop/scripts/$1" \
+           "$APP_DIR/../../scripts/$1"; do
+    [ -f "$c" ] && { echo "$c"; return 0; }
+  done
+  return 1
+}
+
+sib_app() {  # $1 = app name → prints executable path or nothing
+  if command -v "$1" >/dev/null 2>&1; then command -v "$1"; return 0; fi
+  local sib="$APP_DIR/../$1/$1"
+  [ -x "$sib" ] && { echo "$sib"; return 0; }
+  return 1
+}
+
+# --- actions (called by the YAD buttons) -----------------------------------
+action_update() {
+  run_term 'sudo apt update && sudo apt full-upgrade -y && flatpak update -y 2>/dev/null; snap refresh 2>/dev/null; true'
+}
+
+action_devstack() {
+  local s
+  if s="$(find_script dev-setup.sh)"; then
+    run_term "sudo bash '$s'"
+  else
+    run_term 'echo "dev-setup.sh not found — clone the repo first:"; echo "  git clone https://github.com/Seigh-sword/linux-for-my-laptop.git"'
+  fi
+}
+
+action_wallpapers() { run_gui arun-wallpapers; }
+
+action_optimizer() {
+  local a
+  if a="$(sib_app arun-optimizer)"; then run_term "'$a'"
+  else run_gui arun-optimizer; fi
+}
+
+action_drivers() {
+  local a
+  if a="$(sib_app arun-drivers)"; then run_term "sudo '$a'"
+  else run_gui arun-drivers; fi
+}
+
+action_pkgdemo() {
+  local a
+  if a="$(sib_app arun-pkg)"; then run_term "'$a' --help"
+  else run_term 'echo "arun-pkg not installed yet — run the installer first!"'; fi
+}
+
+# --- GUI -------------------------------------------------------------------
+gui() {
+  local img_args=()
+  [ -n "$LOGO" ] && img_args=(--image="$LOGO" --image-on-top)
+  local out
+  out="$(yad --title="Welcome to arunlinux" --width=620 \
+    --text="<big><b>🐧 Welcome to arunlinux!</b></big>\nBuilt for your 4 GB laptop — VS Code, Chrome & coding, ready to fly." \
+    "${img_args[@]}" \
+    --form \
+    --field="🔄  Update everything:FBTN"    "\"$0\" --action update" \
+    --field="🧑‍💻  Install dev stack:FBTN"   "\"$0\" --action devstack" \
+    --field="🖼️  Wallpaper Gallery:FBTN"    "\"$0\" --action wallpapers" \
+    --field="⚡  System Optimizer:FBTN"     "\"$0\" --action optimizer" \
+    --field="🔧  Driver Installer:FBTN"     "\"$0\" --action drivers" \
+    --field="📦  Demo: arun-pkg:FBTN"       "\"$0\" --action pkgdemo" \
+    --field="Don't show again:CHK" FALSE \
+    --button="Let's go! 🚀:0")"
+  local choice
+  choice="$(echo "$out" | awk -F'|' '{print $NF}')"
+  if [ "$choice" = "TRUE" ]; then
+    rm -f "$HOME/.config/autostart/arun-welcome.desktop"
+  fi
+}
+
+# --- text fallback (no YAD / no display) -----------------------------------
+text_menu() {
+  while true; do
+    echo ""
+    echo "════════ 🌟 arunlinux Welcome ════════"
+    echo "  1) Update everything"
+    echo "  2) Install dev stack"
+    echo "  3) Wallpaper Gallery"
+    echo "  4) System Optimizer"
+    echo "  5) Driver Installer"
+    echo "  6) Demo: arun-pkg"
+    echo "  0) Exit"
+    read -rp "Choose: " c
+    case "$c" in
+      1) action_update;; 2) action_devstack;; 3) action_wallpapers;;
+      4) action_optimizer;; 5) action_drivers;; 6) action_pkgdemo;;
+      0) exit 0;; *) echo "Pick 0-6";;
+    esac
+  done
+}
+
+# --- dispatch --------------------------------------------------------------
+case "${1:-}" in
+  --action)
+    case "${2:-}" in
+      update|devstack|wallpapers|optimizer|drivers|pkgdemo) "action_$2";;
+      *) echo "Unknown action: ${2:-}"; exit 1;;
+    esac
+    exit 0
+    ;;
+esac
+
+if command -v yad >/dev/null 2>&1 && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+  gui
+else
+  echo "(yad not found — text mode. Install it: sudo apt install yad)"
+  export ARUN_TEXT=1
+  text_menu
+fi

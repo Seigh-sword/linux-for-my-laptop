@@ -1,0 +1,85 @@
+# ============================================================================
+# arunlinux — ArunDE Fusion desktop (XFCE core + LXQt light apps, debloated)
+# .list.chroot files are installed INTO the live system by live-build.
+# ----------------------------------------------------------------------------
+# What we KEEP from XFCE (the fast, stable core):
+#   xfwm4 window manager, xfce4-panel, session, settings, screenshooter
+# What we TAKE from LXQt (lighter than XFCE equivalents):
+#   qterminal (lighter than xfce4-terminal), lxqt-runner (app launcher),
+#   featherpad (light editor), lximage-qt (image viewer)
+# What we DROP (bloat):
+#   parole, ristretto, xfce4-dict, xfce4-notes, gigolo, orage,
+#   mate/polkit agents we don't need, extra games, bulk print stacks
+# ============================================================================
+
+# --- Xorg + display manager ---
+xorg
+xserver-xorg-input-all
+xserver-xorg-video-all
+lightdm
+lightdm-gtk-greeter
+lightdm-gtk-greeter-settings
+
+# --- XFCE core (session, wm, panel, settings) ---
+xfce4-session
+xfwm4
+xfce4-panel
+xfce4-settings
+xfce4-power-manager
+xfce4-screenshooter
+xfce4-taskmanager
+xfce4-terminal
+thunar
+thunar-archive-plugin
+thunar-volman
+tumbler
+gvfs
+gvfs-backends
+udisks2
+polkitd
+pavucontrol
+pasystray
+network-manager
+network-manager-gnome
+
+# --- LXQt light apps (the "fusion" part) ---
+qterminal
+lxqt-runner
+featherpad
+lximage-qt
+pavucontrol-qt
+lxqt-notificationd
+lxqt-policykit
+openbox
+obconf-qt
+
+# --- Look & feel ---
+arc-theme
+papirus-icon-theme
+fonts-dejavu
+fonts-liberation
+fonts-noto
+fonts-noto-color-emoji
+xfce4-whiskermenu-plugin
+plank
+
+# --- arunlinux apps runtime (Bash + YAD dialogs, ImageMagick thumbnails) ---
+yad
+imagemagick
+
+# --- Essentials every desktop needs ---
+firefox-esr
+mousepad
+galculator
+file-roller
+evince
+cups
+cups-filters
+system-config-printer
+blueman
+bluez
+pulseaudio
+pulseaudio-module-bluetooth
+alsa-utils
+upower
+acpi

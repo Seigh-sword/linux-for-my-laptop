@@ -1,0 +1,5 @@
+# arunlinux zram fallback config → /etc/default/zramswap
+# Used when systemd-zram-generator is unavailable (zram-tools package).
+ALGO=zstd
+PERCENT=50
+PRIORITY=100

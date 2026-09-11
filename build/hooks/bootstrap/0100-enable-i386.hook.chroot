@@ -1,0 +1,8 @@
+#!/bin/sh
+# live-build BOOTSTRAP hook: enable 32-bit (i386) multiarch BEFORE any
+# packages are installed. (hooks/live/*.hook.chroot run too late in the
+# chroot stage for wine32 — this one runs first.)
+set -e
+echo "==> [arunlinux bootstrap hook] enabling i386 architecture..."
+dpkg --add-architecture i386
+apt-get update || echo "(bootstrap apt-get update deferred — chroot stage will update)"

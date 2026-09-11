@@ -17,6 +17,10 @@ LB_CACHE="${LB_CACHE:-true}"
 
 # NOTE: no --debian-installer flag at all (default = none; WE are the
 # installer). No --username/--hostname (trixie live-build lacks them).
+# NOTE: --iso-volume stays name-only on purpose: ISO9660 caps volume IDs
+# at 32 chars and xorriso aborts the build when it is longer (name+version
+# was 34 chars here). Keep comments OUT of the flag chain below: a # line
+# inside a backslash continuation ends the command in bash.
 lb config noauto \
   --mode debian \
   --system live \
@@ -38,8 +42,6 @@ lb config noauto \
   --cache-indices "$LB_CACHE" \
   --cache-packages "$LB_CACHE" \
   --iso-publisher "arunlinux" \
-  # NOTE: name only - ISO9660 volume IDs max out at 32 chars and xorriso
-  # aborts the whole build when it is longer (name+version was 34 here).
   --iso-volume "$DISTRO_NAME" \
   --iso-application "${DISTRO_NAME} ${VERSION}" \
   --image-name "arun-launcher" \

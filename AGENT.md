@@ -121,6 +121,9 @@ bash -c '. lib/var.sh; . launcher/install-engine.sh; DRY_RUN=1 eng_partition_gui
     (DRY_RUN-aware), the booted-from disk is never offered as a target,
     wipes need explicit typed confirmation, bootloader install must have
     at least one working target (EFI removable and/or BIOS).
+12. **Never put `#` comment lines inside a backslash-continued command.**
+    Bash ends the command at the comment line, so the remaining flags run
+    as their own (failing) command. Keep comments above the chain.
 
 ## Trixie gotchas (learned the hard way)
 

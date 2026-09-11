@@ -2,7 +2,7 @@
 # ============================================================================
 # arunlinux live-build configuration
 # Called by build-iso.sh — you can also run it manually for custom builds:
-#     sudo bash build/lb-config.sh trixie amd64 arunlinux 1.0
+#     sudo bash build/lb-config.sh trixie amd64 arunlinux x86_64-v1e376dc
 # Extra args are passed through to `lb config`. Set LB_CACHE=false to
 # disable the on-disk cache (saves gigabytes on CI runners).
 # ============================================================================

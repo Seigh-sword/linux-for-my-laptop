@@ -57,14 +57,15 @@ On a Debian 13 machine with ~20 GB free:
 
 ```bash
 sudo bash build/build-iso.sh
-# → out/arunlinux-1.0-amd64.hybrid.iso  (flash with Rufus / Balena Etcher / dd)
+# → out/arunlinux-x86_64-v<commit>.hybrid.iso  (flash with Rufus / Balena Etcher / dd)
 ```
 
 See [docs/BUILD-ISO.md](docs/BUILD-ISO.md).
 
 ### Path C — Let GitHub build the ISO for you
-Push to `main` (or run the workflow manually) → download the ISO from the
-**Actions → Build arunlinux ISO → Artifacts** page. See the workflow file.
+Every commit on every branch triggers a cloud build (or run the workflow
+manually) → download the ISO from the **Actions → Build arunlinux ISO →
+Artifacts** page. See the workflow file.
 
 ## 🖥️ System requirements
 

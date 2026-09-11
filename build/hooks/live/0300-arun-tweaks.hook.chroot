@@ -21,9 +21,11 @@ install -Dm644 "$SRC/kernel/zram/zram-swap.default" /etc/default/zramswap
 install -Dm644 "$SRC/kernel/modprobe/i915.conf" /etc/modprobe.d/i915-arunlinux.conf
 install -Dm644 "$SRC/kernel/earlyoom/earlyoom.default" /etc/default/earlyoom
 
-# --- os-release branding ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="arunlinux 1.0"/' /etc/os-release
+# --- os-release branding (version baked in by build-iso.sh) ---
+ARUN_VER="$(cat "$SRC/VERSION" 2>/dev/null || echo "1.0")"
+sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"arunlinux $ARUN_VER\"/" /etc/os-release
 sed -i 's/^NAME=.*/NAME="arunlinux"/' /etc/os-release
+sed -i "s/^VERSION_ID=.*/VERSION_ID=\"$ARUN_VER\"/" /etc/os-release
 echo 'HOME_URL="https://github.com/Seigh-sword/linux-for-my-laptop"' >> /etc/os-release
 
 # --- Custom apps ---

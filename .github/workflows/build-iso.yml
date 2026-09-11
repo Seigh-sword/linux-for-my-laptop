@@ -1,7 +1,8 @@
 # ============================================================================
 # Build the arunlinux ISO in the cloud (GitHub Actions)
-# Trigger: PR, push to main, weekly schedule, or manual "Run workflow".
-# ISO → Artifacts (kept 7 days). Result + error excerpt posted as PR comment.
+# Runs on EVERY commit (any branch) — no path filters — plus weekly schedule.
+# ISO → Artifacts (kept 7 days). Result posted as PR comment when PR is open.
+# Filename: arunlinux-x86_64-v<commit>.hybrid.iso
 # Note: live-build needs privileges → we build inside a privileged container.
 # ============================================================================
 name: Build arunlinux ISO
@@ -11,29 +12,12 @@ permissions:
   pull-requests: write
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build/**'
-      - 'scripts/**'
-      - 'kernel/**'
-      - 'apps/**'
-      - 'assets/**'
-      - '.github/workflows/build-iso.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'build/**'
-      - 'scripts/**'
-      - 'kernel/**'
-      - 'apps/**'
-      - 'assets/**'
-      - '.github/workflows/build-iso.yml'
+  push:               # every commit on every branch
   schedule:
     - cron: '0 2 * * 0'   # fresh ISO every Sunday at 02:00 UTC
   workflow_dispatch:
 
-# New pushes cancel stale runs on the same branch (saves runner minutes)
+# New pushes cancel stale runs on the same branch (latest commit always wins)
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -69,7 +53,7 @@ jobs:
                 mtools dosfstools parted curl git ca-certificates
               chmod +x build/build-iso.sh build/lb-config.sh \
                 build/hooks/live/* build/hooks/bootstrap/* 2>/dev/null || true
-              LB_CACHE=false VERSION='${{ github.run_number }}' bash build/build-iso.sh
+              LB_CACHE=false VERSION='${{ github.sha }}' bash build/build-iso.sh
             " 2>&1 | tee iso-build.log
           RC=${PIPESTATUS[0]}
           echo "exit_code=$RC" >> "$GITHUB_OUTPUT"
@@ -82,8 +66,14 @@ jobs:
           df -h
 
       - name: Report result to PR
-        if: always() && github.event_name == 'pull_request' && steps.build.outputs.exit_code != ''
+        if: always() && steps.build.outputs.exit_code != ''
         run: |
+          PR_NUM=$(gh pr list --head "${{ github.ref_name }}" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$PR_NUM" ]; then
+            echo "No open PR for branch ${{ github.ref_name }} — skipping PR comment."
+            tail -20 iso-build.log
+            exit 0
+          fi
           PASS="✅ ISO BUILD PASSED"; [ "${{ steps.build.outputs.exit_code }}" = "0" ] || PASS="❌ ISO BUILD FAILED"
           {
             echo "## $PASS — run ${{ github.run_id }}"
@@ -102,9 +92,17 @@ jobs:
             echo '```'
             echo "</details>"
           } > report.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md
+          gh pr comment "$PR_NUM" --body-file report.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iso-build-log
+          path: iso-build.log
+          retention-days: 7
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4

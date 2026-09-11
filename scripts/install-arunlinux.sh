@@ -90,8 +90,9 @@ ok "Apps + wallpapers installed."
 
 # --- 9. Branding ----------------------------------------------------------------------
 log "Branding the system..."
+ARUN_VER="x86_64-v$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo 1.0)"
 if [ -f /etc/os-release ]; then
-  sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="arunlinux 1.0 (Debian-based)"/' /etc/os-release
+  sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"arunlinux $ARUN_VER (Debian-based)\"/" /etc/os-release
   grep -q '^NAME=' /etc/os-release && sed -i 's/^NAME=.*/NAME="arunlinux"/' /etc/os-release
 fi
 ok "This machine is now arunlinux. 🎉"

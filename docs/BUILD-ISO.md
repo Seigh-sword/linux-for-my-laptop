@@ -21,7 +21,7 @@ build/
 ```
 
 Build stages: **bootstrap** (minbase) → **chroot** (packages + hooks) →
-**binary** (squashfs + ISO) → `out/arunlinux-1.0-amd64.hybrid.iso`.
+**binary** (squashfs + ISO) → `out/arunlinux-x86_64-v<commit>.hybrid.iso`.
 
 ## Build requirements
 - Host OS: **Debian 13** (must match target — live-build rule)

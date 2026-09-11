@@ -30,7 +30,7 @@ Best for trying everything TODAY in a VM or on the laptop.
 
 ### 2. Make a bootable USB
 - **Windows:** [Rufus](https://rufus.ie) → select ISO → GPT + UEFI → Start.
-- **Linux:** `sudo dd if=arunlinux-1.0-amd64.hybrid.iso of=/dev/sdX bs=4M status=progress`
+- **Linux:** `sudo dd if=arunlinux-x86_64-v<commit>.hybrid.iso of=/dev/sdX bs=4M status=progress`
   (triple-check `/dev/sdX` is your USB stick!)
 
 ### 3. Partition plan for your 128 GB disk (dual-boot example)

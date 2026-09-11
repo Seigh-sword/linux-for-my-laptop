@@ -1,8 +1,8 @@
 # ============================================================================
 # Fast pre-build checks (~2 min): shell syntax, live-build flags, and every
 # package name verified against the real Debian trixie repositories.
-# Run this BEFORE the 40-minute ISO build to catch silly failures early.
-# (Result + log tail are posted as a PR comment so failures are easy to read.)
+# Runs on EVERY commit (any branch) — no path filters.
+# (Result + log tail are posted as a PR comment whenever a PR is open.)
 # ============================================================================
 name: Lint distro config
 
@@ -11,20 +11,7 @@ permissions:
   pull-requests: write
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build/**'
-      - 'scripts/**'
-      - 'kernel/**'
-      - 'apps/**'
-      - '.github/workflows/lint-packages.yml'
-  pull_request:
-    paths:
-      - 'build/**'
-      - 'scripts/**'
-      - 'kernel/**'
-      - 'apps/**'
+  push:               # every commit on every branch
   workflow_dispatch:
 
 concurrency:
@@ -56,8 +43,14 @@ jobs:
           exit $RC
 
       - name: Report result to PR
-        if: always() && github.event_name == 'pull_request' && steps.lint.outputs.exit_code != ''
+        if: always() && steps.lint.outputs.exit_code != ''
         run: |
+          PR_NUM=$(gh pr list --head "${{ github.ref_name }}" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$PR_NUM" ]; then
+            echo "No open PR for branch ${{ github.ref_name }} — skipping PR comment."
+            tail -30 lint-output.txt
+            exit 0
+          fi
           PASS="✅ LINT PASSED"; [ "${{ steps.lint.outputs.exit_code }}" = "0" ] || PASS="❌ LINT FAILED"
           {
             echo "## $PASS — run ${{ github.run_id }}"
@@ -66,6 +59,14 @@ jobs:
             tail -80 lint-output.txt
             echo '```'
           } > report.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md
+          gh pr comment "$PR_NUM" --body-file report.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload lint log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-log
+          path: lint-output.txt
+          retention-days: 7

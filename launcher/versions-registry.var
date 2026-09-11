@@ -1,0 +1,34 @@
+# ============================================================================
+# versions-registry.var - every arunlinux version the launcher can install.
+# Read by launcher/arun-launcher (backend store, VAR-SPEC v1).
+#
+# kinds:
+#   netinstall - tiny payload tarball + packages from the Debian mirror.
+#                Small download, always the latest packages. Needs network.
+#   iso        - full bootable ISO image. Big download, works offline after.
+# ============================================================================
+
+registry.format = 1;
+registry.updated = "2026-09-11";
+registry.latest = "x86_64-v90130a1";
+registry.refresh = "https://raw.githubusercontent.com/Seigh-sword/arunlinux/main/launcher/versions-registry.var";
+
+ver.count = 1;
+
+# --- slot 0: current stable ---
+ver.0.id = "x86_64-v90130a1";
+ver.0.kind = "netinstall";
+ver.0.commit = "90130a1";
+ver.0.payload = "https://github.com/Seigh-sword/arunlinux/archive/90130a1.tar.gz";
+ver.0.date = "2026-09-11";
+ver.0.desc = "Latest stable netinstall (small payload, packages from mirror)";
+
+# --- template for future ISO entries (uncomment + fill in to publish one) ---
+# ver.count = 2;
+# ver.1.id = "x86_64-v90130a1";
+# ver.1.kind = "iso";
+# ver.1.url = "https://github.com/Seigh-sword/arunlinux/releases/download/iso-x86_64-v90130a1/arunlinux-x86_64-v90130a1.hybrid.iso";
+# ver.1.sha256 = "PASTE-SHA256-HERE";
+# ver.1.size = 3900000000;
+# ver.1.date = "2026-09-11";
+# ver.1.desc = "Full bootable ISO (for USB sticks and offline installs)";

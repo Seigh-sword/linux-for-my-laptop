@@ -27,27 +27,33 @@ If your machine is slow, old, or just short on RAM — this distro is for you.
 | **Dev stack** | Rust, C/C++, Go, Node, Java, Kotlin | One script installs all |
 | **Windows apps** | Wine + Winetricks | Run .exe stuff |
 | **Security** | UFW firewall, automatic security updates, fail2ban, hardened sysctl | Safe defaults out of the box |
-| **Custom apps** | Welcome Center, Wallpaper Gallery, Optimizer, Driver Installer, `arun-pkg` | Bash + YAD: instant startup, tiny RAM |
+| **Installer** | Minimal launcher ISO (netinstall any version from a registry) | Small download, accounts included |
+| **Custom apps** | Welcome Center, Wallpaper Gallery, Optimizer, Driver Installer, Account Manager, `arun-pkg` | Bash + YAD: instant startup, tiny RAM |
 
 ## Repo layout
 
 ```
-├── build/            # ISO factory (live-build config, package lists, hooks)
+├── build/            # ISO factories (full ISO + minimal launcher ISO)
 ├── scripts/          # One-shot setup scripts (also used inside the ISO build)
 ├── kernel/           # Kernel/boot/RAM tuning (sysctl, zram, grub, graphics)
+├── launcher/         # Netinstaller: arun-launcher TUI, engine, .var registry
+├── lib/              # Shared libraries (the .var variable-file parser)
+├── tools/            # CLI helpers (the `var` tool for .var files)
+├── tests/            # Test suites (run: bash tests/test-var.sh)
 ├── apps/             # Custom arunlinux apps (Bash + YAD — zero Python, instant startup)
 │   ├── arun-welcome/     # Welcome Center
 │   ├── arun-wallpapers/  # Wallpaper Gallery (Minecraft / Spiderman / Ultra + more)
 │   ├── arun-optimizer/   # RAM/battery/startup optimizer
 │   ├── arun-drivers/     # Driver autoinstaller (the "Ubuntu drivers" magic)
+│   ├── arun-accounts/    # User account manager (.var backend)
 │   └── arun-pkg/         # Unified package-manager wrapper
 ├── assets/           # Icon, logo + AI wallpapers
 ├── docs/             # Install / build / tweaks / troubleshooting guides
 ├── AGENT.md          # Handbook for AI agents working on this repo
-└── .github/workflows # CI that lints and builds the ISO automatically
+└── .github/workflows # CI that lints and builds the ISOs automatically
 ```
 
-## Quick start (3 paths)
+## Quick start (4 paths)
 
 ### Path A — Try it TODAY without building anything (recommended first step)
 
@@ -79,6 +85,14 @@ Every commit on every branch triggers a cloud build (or run the workflow
 manually) → download the ISO from the **Actions → Build arunlinux ISO →
 Artifacts** page. See the workflow file.
 
+### Path D — Netinstall with the tiny launcher ISO (smallest download)
+
+Grab `arunlinux-launcher-*.hybrid.iso` from **Actions → Build launcher ISO →
+Artifacts** (or build it: `sudo bash build/build-launcher.sh`), flash it to a
+USB stick, and boot. The launcher downloads only the version payload (a few MB)
+plus Debian packages, creates your user accounts, and installs everything.
+See [docs/LAUNCHER.md](docs/LAUNCHER.md).
+
 ## System requirements
 
 | | Minimum | Recommended |
@@ -92,6 +106,8 @@ Artifacts** page. See the workflow file.
 
 - [INSTALL.md](docs/INSTALL.md) — install paths, dual-boot with Windows, partitioning guide
 - [BUILD-ISO.md](docs/BUILD-ISO.md) — how the ISO factory works
+- [LAUNCHER.md](docs/LAUNCHER.md) — the minimal netinstaller ISO + registry + accounts
+- [VAR-SPEC.md](docs/VAR-SPEC.md) — the .var variable-file format + tools
 - [KERNEL-TWEAKS.md](docs/KERNEL-TWEAKS.md) — every kernel/RAM/GPU tweak explained
 - [PACKAGE-MANAGERS.md](docs/PACKAGE-MANAGERS.md) — apt/flatpak/snap/npm/AppImage/pacman guide
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — Wi-Fi, sound, Chrome, VS Code fixes

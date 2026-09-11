@@ -1,0 +1,54 @@
+#!/bin/bash
+# ============================================================================
+# var - command-line tool for .var variable files (VAR-SPEC v1)
+# ----------------------------------------------------------------------------
+# Usage:
+#   var get FILE KEY [DEFAULT]        print the value (exit 1 if missing)
+#   var has FILE KEY                  exit 0/1 (for if statements)
+#   var keys FILE [PREFIX]            list keys, optionally filtered by prefix
+#   var dump FILE                     show every key, type and value
+#   var set FILE KEY VALUE [--type]   create/replace (--int|--bool|--string)
+#   var del FILE KEY                  delete from the top file
+#   var validate FILE...              strict syntax check
+# See docs/VAR-SPEC.md.
+# ============================================================================
+set -uo pipefail
+
+SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/var.sh
+. "$SELF_DIR/../lib/var.sh"
+
+usage() { sed -n '2,15p' "$0" | sed 's/^# //;s/^#//'; }
+
+cmd="${1:-help}"
+case "$cmd" in
+  get)
+    [ $# -ge 3 ] || { usage >&2; exit 1; }
+    if [ $# -ge 4 ]; then var_get "$2" "$3" "$4"; else var_get "$2" "$3"; fi
+    ;;
+  has)
+    [ $# -eq 3 ] || { usage >&2; exit 1; }
+    var_has "$2" "$3"
+    ;;
+  keys)
+    [ $# -ge 2 ] || { usage >&2; exit 1; }
+    var_keys "$2" "${3-}"
+    ;;
+  dump)
+    [ $# -eq 2 ] || { usage >&2; exit 1; }
+    var_dump "$2"
+    ;;
+  set)
+    [ $# -ge 4 ] || { usage >&2; exit 1; }
+    var_set "$2" "$3" "$4" "${5---auto}"
+    ;;
+  del)
+    [ $# -eq 3 ] || { usage >&2; exit 1; }
+    var_del "$2" "$3"
+    ;;
+  validate)
+    [ $# -ge 2 ] || { usage >&2; exit 1; }
+    shift; var_validate "$@"
+    ;;
+  help|-h|--help|*) usage ;;
+esac

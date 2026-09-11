@@ -59,14 +59,24 @@ bash "$REPO_DIR/scripts/pkgmanagers-setup.sh" 2>&1 | tee -a "$LOG"
 ok "Package managers ready."
 
 # --- 6. Dev stack: Rust, C/C++, Go, Node, Java, Kotlin ------------------------------
-log "Installing dev stack (Rust, C/C++, Go, Node, Java, Kotlin)..."
-bash "$REPO_DIR/scripts/dev-setup.sh" "$REAL_USER" 2>&1 | tee -a "$LOG"
-ok "Dev stack installed."
+# (ARUN_SKIP_DEV=1 skips this - the launcher offers it as an option)
+if [ "${ARUN_SKIP_DEV:-0}" = "1" ]; then
+  log "Skipping dev stack (ARUN_SKIP_DEV=1)."
+else
+  log "Installing dev stack (Rust, C/C++, Go, Node, Java, Kotlin)..."
+  bash "$REPO_DIR/scripts/dev-setup.sh" "$REAL_USER" 2>&1 | tee -a "$LOG"
+  ok "Dev stack installed."
+fi
 
 # --- 7. Wine -----------------------------------------------------------------------
-log "Installing Wine + Winetricks..."
-bash "$REPO_DIR/scripts/wine-setup.sh" 2>&1 | tee -a "$LOG"
-ok "Wine ready."
+# (ARUN_SKIP_WINE=1 skips this - the launcher offers it as an option)
+if [ "${ARUN_SKIP_WINE:-0}" = "1" ]; then
+  log "Skipping Wine (ARUN_SKIP_WINE=1)."
+else
+  log "Installing Wine + Winetricks..."
+  bash "$REPO_DIR/scripts/wine-setup.sh" 2>&1 | tee -a "$LOG"
+  ok "Wine ready."
+fi
 
 # --- 8. Custom arunlinux apps + wallpapers -------------------------------------------
 log "Installing custom arunlinux apps + wallpapers..."
@@ -83,7 +93,8 @@ ln -sf /usr/share/arunlinux/arun-optimizer/arun-optimizer /usr/local/bin/arun-op
 ln -sf /usr/share/arunlinux/arun-wallpapers/arun-wallpapers /usr/local/bin/arun-wallpapers
 ln -sf /usr/share/arunlinux/arun-welcome/arun-welcome /usr/local/bin/arun-welcome
 ln -sf /usr/share/arunlinux/arun-drivers/arun-drivers /usr/local/bin/arun-drivers
-for app in arun-welcome arun-wallpapers arun-optimizer; do
+ln -sf /usr/share/arunlinux/arun-accounts/arun-accounts /usr/local/bin/arun-accounts
+for app in arun-welcome arun-wallpapers arun-optimizer arun-accounts; do
   [ -f "/usr/share/arunlinux/$app/$app.desktop" ] && \
     ln -sf "/usr/share/arunlinux/$app/$app.desktop" /usr/share/applications/
 done
@@ -101,7 +112,8 @@ ok "Security hardened."
 
 # --- 10. Branding ---------------------------------------------------------------------
 log "Branding the system..."
-ARUN_VER="x86_64-v$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo 1.0)"
+# ARUN_VERSION (set by the launcher) wins; else git commit; else 1.0 (tarballs)
+ARUN_VER="${ARUN_VERSION:-x86_64-v$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo 1.0)}"
 if [ -f /etc/os-release ]; then
   sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"arunlinux $ARUN_VER (Debian-based)\"/" /etc/os-release
   grep -q '^NAME=' /etc/os-release && sed -i 's/^NAME=.*/NAME="arunlinux"/' /etc/os-release

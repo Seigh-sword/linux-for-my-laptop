@@ -1,0 +1,60 @@
+#!/bin/bash
+# live-build chroot hook: install the arunlinux launcher payload and make it
+# run on tty1 at boot (systemd service). Expects /arun-src in the chroot.
+set -e
+echo "==> [arunlinux launcher hook] installing launcher..."
+
+SRC=""
+for cand in /arun-src /root/arun-src "$(pwd)/arun-src"; do
+  [ -d "$cand" ] && SRC="$cand" && break
+done
+if [ -z "$SRC" ]; then
+  echo "[WARN] arun-src not found, launcher will be missing!" >&2
+  exit 1
+fi
+
+mkdir -p /usr/local/lib/arun-launcher /usr/local/bin
+cp -r "$SRC/launcher" /usr/local/lib/arun-launcher/launcher
+cp -r "$SRC/lib" /usr/local/lib/arun-launcher/lib
+cp -r "$SRC/tools" /usr/local/lib/arun-launcher/tools
+mkdir -p /usr/local/lib/arun-launcher/apps
+cp -r "$SRC/apps/arun-accounts" /usr/local/lib/arun-launcher/apps/
+chmod +x /usr/local/lib/arun-launcher/launcher/arun-launcher \
+         /usr/local/lib/arun-launcher/tools/var \
+         /usr/local/lib/arun-launcher/apps/arun-accounts/arun-accounts
+ln -sf /usr/local/lib/arun-launcher/launcher/arun-launcher /usr/local/bin/arun-launcher
+ln -sf /usr/local/lib/arun-launcher/tools/var /usr/local/bin/var
+ln -sf /usr/local/lib/arun-launcher/apps/arun-accounts/arun-accounts /usr/local/bin/arun-accounts
+
+# Run the launcher on tty1 instead of a login prompt (respawns on exit;
+# "Quit to shell" inside the launcher stops this unit first).
+cat > /etc/systemd/system/arun-launcher.service <<'EOF'
+[Unit]
+Description=arunlinux netinstaller launcher
+After=network-online.target getty@tty1.service
+Wants=network-online.target
+Conflicts=getty@tty1.service
+
+[Service]
+Type=idle
+ExecStart=/usr/local/bin/arun-launcher
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable arun-launcher 2>/dev/null || true
+
+cat > /etc/motd <<'EOF'
+arunlinux launcher - the installer runs on tty1.
+Press Alt+F2 for a shell, Alt+F1 to return.
+EOF
+
+rm -rf /arun-src
+echo "==> [arunlinux launcher hook] done."

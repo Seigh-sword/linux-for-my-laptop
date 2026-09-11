@@ -1,0 +1,31 @@
+# ============================================================================
+# arunlinux launcher - minimal console installer image
+# debootstrap + partitioning + network + dialogs. No desktop, no apps:
+# the image boots straight into arun-launcher (see hooks/live/0100-*).
+# ============================================================================
+
+# --- install engine needs ---
+debootstrap
+gdisk
+parted
+dosfstools
+e2fsprogs
+efibootmgr
+
+# --- dialogs + downloads ---
+whiptail
+curl
+wget
+ca-certificates
+gpg
+xz-utils
+
+# --- network (ethernet auto-DHCP; Wi-Fi via nmtui/nmcli) ---
+network-manager
+wpasupplicant
+iw
+
+# --- console + hardware info ---
+console-setup
+pciutils
+usbutils

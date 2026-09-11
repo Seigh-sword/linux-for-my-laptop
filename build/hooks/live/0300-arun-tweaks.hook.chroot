@@ -48,9 +48,10 @@ ln -sf /usr/share/arunlinux/arun-optimizer/arun-optimizer /usr/local/bin/arun-op
 ln -sf /usr/share/arunlinux/arun-wallpapers/arun-wallpapers /usr/local/bin/arun-wallpapers
 ln -sf /usr/share/arunlinux/arun-welcome/arun-welcome /usr/local/bin/arun-welcome
 ln -sf /usr/share/arunlinux/arun-drivers/arun-drivers /usr/local/bin/arun-drivers
+ln -sf /usr/share/arunlinux/arun-accounts/arun-accounts /usr/local/bin/arun-accounts
 
 # --- Desktop entries ---
-for app in arun-welcome arun-wallpapers arun-optimizer; do
+for app in arun-welcome arun-wallpapers arun-optimizer arun-accounts; do
   if [ -f "/usr/share/arunlinux/$app/$app.desktop" ]; then
     ln -sf "/usr/share/arunlinux/$app/$app.desktop" /usr/share/applications/
   fi

@@ -53,6 +53,14 @@ Best for trying everything TODAY in a VM or on any spare machine.
 - Boot the ISO → live mode works without installing.
 - Inside the VM you can also test Path A on a Debian netinst.
 
+## Path D — Launcher netinstall (smallest download, real hardware)
+- Get the launcher ISO: **Actions → Build launcher ISO → Artifacts**
+  (or `sudo bash build/build-launcher.sh`), flash to USB, boot it.
+- Pick a version from the registry, create your accounts, pick a disk.
+- Guided mode wipes the disk (BIOS boot + EFI + root, hybrid GRUB);
+  manual mode opens `cfdisk`. Needs internet (packages from Debian mirror).
+- Full guide: [LAUNCHER.md](LAUNCHER.md).
+
 ---
 
 ## First boot checklist

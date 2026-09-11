@@ -85,3 +85,20 @@ Grouped by topic, with what each source was used for.
   <https://www.progressiverobot.com/2026/05/25/debian-13-fail2ban-vulnerability-patch-remediation/>
 - ohyaan.github.io: Raspberry Pi OS trixie hardening — UFW + updates checklist
   <https://ohyaan.github.io/tips/raspberry_pi_security_hardening_complete_guide/>
+
+## Netinstaller (debootstrap, partitioning, GRUB)
+
+- grml-debootstrap docs — reference debootstrap installer flow
+  <https://grml.org/grml-debootstrap/>
+- grml-debootstrap manpage — target/grub/efi options
+  <https://manpages.debian.org/unstable/grml-debootstrap/grml-debootstrap.8.en.html>
+- oneuptime.com: debootstrap from scratch — chroot config, fstab, grub-install
+  <https://oneuptime.com/blog/post/2026-03-02-debootstrap-minimal-ubuntu-system-from-scratch/view>
+- debian-user thread: debootstrap + grub-install recipe (BIOS and EFI)
+  <https://groups.google.com/g/linux.debian.user/c/sQvWgMieH2w>
+- reddit r/debian: reinstalling grub-efi — --removable/--no-nvram flags
+  <https://www.reddit.com/r/debian/comments/sb736l/how_to_installreinstall_grubefi_for_debian_1011/>
+- rodsbooks.com: sgdisk walkthrough — scripted GPT partitioning
+  <https://www.rodsbooks.com/gdisk/sgdisk-walkthrough.html>
+- codelucky.com: sgdisk guide — type codes (ef00/ef02/8300), zap, naming
+  <https://codelucky.com/sgdisk-command-linux/>

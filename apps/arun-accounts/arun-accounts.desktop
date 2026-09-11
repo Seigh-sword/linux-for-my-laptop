@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=arunlinux Accounts
+Comment=Create and manage user accounts (stored in accounts.var)
+Exec=arun-accounts --tui
+Icon=system-users
+Terminal=true
+Type=Application
+Categories=System;Settings;
+Keywords=accounts;users;arunlinux;

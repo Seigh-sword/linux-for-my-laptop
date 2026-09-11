@@ -92,7 +92,12 @@ cp /usr/share/arunlinux/arun-welcome/arun-welcome.desktop "$REAL_HOME/.config/au
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config" 2>/dev/null || true
 ok "Apps + wallpapers installed."
 
-# --- 9. Branding ----------------------------------------------------------------------
+# --- 9. Security hardening ------------------------------------------------------------
+log "Applying security hardening (firewall, auto security updates, fail2ban)..."
+bash "$REPO_DIR/scripts/security-harden.sh" 2>&1 | tee -a "$LOG"
+ok "Security hardened."
+
+# --- 10. Branding ---------------------------------------------------------------------
 log "Branding the system..."
 ARUN_VER="x86_64-v$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo 1.0)"
 if [ -f /etc/os-release ]; then

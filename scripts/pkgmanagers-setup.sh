@@ -43,9 +43,11 @@ ln -sf /var/lib/snapd/snap /snap 2>/dev/null || true
 # --- VS Code (Microsoft repo) ---
 echo "==> [4/6] Visual Studio Code..."
 if ! command -v code >/dev/null 2>&1; then
-  wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/ms-vscode.gpg
-  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/ms-vscode.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
-  apt update && apt install -y code
+  # Microsoft signing key: fingerprint BC52 8686 B50D 79E3 39D3 721C EB3E 94AD BE12 29CF
+  if fetch_key "https://packages.microsoft.com/keys/microsoft.asc" "/usr/share/keyrings/ms-vscode.gpg" "EB3E94ADBE1229CF"; then
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/ms-vscode.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+    apt update && apt install -y code
+  fi
 else
   echo "    VS Code already installed."
 fi
@@ -53,9 +55,11 @@ fi
 # --- Google Chrome (Google repo) ---
 echo "==> [5/6] Google Chrome..."
 if ! command -v google-chrome >/dev/null 2>&1; then
-  wget -qO- https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg
-  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-  apt update && apt install -y google-chrome-stable
+  # Google signing key: fingerprint EB4C 1BFD 4F04 2F6D DDCC EC91 7721 F63B D38B 4796
+  if fetch_key "https://dl.google.com/linux/linux_signing_key.pub" "/usr/share/keyrings/google-chrome.gpg" "7721F63BD38B4796"; then
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+    apt update && apt install -y google-chrome-stable
+  fi
 else
   echo "    Chrome already installed."
 fi

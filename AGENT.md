@@ -118,6 +118,16 @@ python3 -c "import xml.dom.minidom; xml.dom.minidom.parse('assets/arunlinux.svg'
   `/usr/local/bin` in BOTH `scripts/install-arunlinux.sh` AND hook 0300.
 - **New docs page:** link it from README.md "Docs" section.
 
+## Agent tooling rules (read this, future agent)
+
+- **NEVER issue parallel edits to the SAME file.** Parallel `edit_file` calls
+  to one file race: only one survives, the rest report success and are
+  silently lost. This once shipped a broken `arun-pkg` (used `$SUDO` without
+  defining it). Same-file edits MUST be sequential, one per response block.
+- Parallel edits to DIFFERENT files are safe.
+- After any batch of edits, re-verify with `grep -c` that every intended
+  change is actually on disk BEFORE committing. Trust `grep`, not tool receipts.
+
 ## Arena session notes
 
 - Work stays on the session branch (`arena/...`); commit + push there only.

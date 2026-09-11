@@ -19,6 +19,8 @@ warn(){ echo -e "${YELLOW}[WARN] $*${NC}"; }
 err() { echo -e "${RED}[ERROR] $*${NC}"; }
 
 need_root() { if [ "$(id -u)" -ne 0 ]; then err "Run with sudo: sudo arun-pkg $*"; exit 1; fi; }
+# Already root? Don't call sudo (it may not even be installed for root).
+SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 
 # Famous apps -> best source mapping (saves RAM/disk on low-memory machines)
 best_source() {
@@ -39,33 +41,46 @@ do_install() {
   # 1. apt (prefer native .deb — smallest RAM/disk footprint)
   if apt-cache show "$pkg" >/dev/null 2>&1; then
     need_root install "$pkg"
-    sudo apt install -y "$pkg" && { ok "'$pkg' installed via apt."; return 0; }
+    $SUDO apt install -y "$pkg" && { ok "'$pkg' installed via apt."; return 0; }
   fi
   case "$hint" in
-    apt:*) need_root install "$pkg"; sudo apt install -y "${hint#apt:}" && { ok "'$pkg' installed via apt."; return 0; };;
+    apt:*) need_root install "$pkg"; $SUDO apt install -y "${hint#apt:}" && { ok "'$pkg' installed via apt."; return 0; };;
   esac
 
-  # 2. flatpak
+  # 2. flatpak (skip the header line - it is not a result)
   if command -v flatpak >/dev/null 2>&1; then
-    if flatpak search "$pkg" 2>/dev/null | tail -n +1 | grep -qi "$pkg"; then
+    if flatpak search "$pkg" 2>/dev/null | tail -n +2 | grep -qi "$pkg"; then
       need_root install "$pkg"
-      local appid; appid="$(flatpak search "$pkg" 2>/dev/null | awk 'NR==1{print $1}')"
-      sudo flatpak install -y flathub "$appid" && { ok "'$pkg' installed via flatpak ($appid)."; return 0; }
+      local appid=""
+      # Preferred: ask flatpak for the app-id column only (flatpak >= 1.10).
+      # The header ("Application ID") contains a space, so the pattern below
+      # only matches real reverse-DNS app ids like org.videolan.VLC.
+      appid="$(flatpak search --columns=application "$pkg" 2>/dev/null | grep -E '^[A-Za-z0-9_.-]+$' | head -1)"
+      # Fallback for ancient flatpak without --columns: fish the id out of
+      # the full table (first dotted token with 3+ components wins).
+      if [ -z "$appid" ]; then
+        appid="$(flatpak search "$pkg" 2>/dev/null | tail -n +2 | grep -oE '[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+\.[A-Za-z0-9_-]+' | head -1)"
+      fi
+      if [ -n "$appid" ]; then
+        $SUDO flatpak install -y flathub "$appid" && { ok "'$pkg' installed via flatpak ($appid)."; return 0; }
+      else
+        warn "flatpak lists '$pkg' but no app id could be parsed - skipping."
+      fi
     fi
   fi
 
-  # 3. snap
+  # 3. snap (skip the header line - it is not a result)
   if command -v snap >/dev/null 2>&1; then
-    if snap find "$pkg" 2>/dev/null | grep -qi "$pkg"; then
+    if snap find "$pkg" 2>/dev/null | tail -n +2 | grep -qi "$pkg"; then
       need_root install "$pkg"
-      sudo snap install "$pkg" && { ok "'$pkg' installed via snap."; return 0; }
+      $SUDO snap install "$pkg" && { ok "'$pkg' installed via snap."; return 0; }
     fi
   fi
 
   # 4. npm (global CLI tools)
   if [ "$hint" = "npm" ] && command -v npm >/dev/null 2>&1; then
     need_root install "$pkg"
-    sudo npm install -g "$pkg" && { ok "'$pkg' installed via npm."; return 0; }
+    $SUDO npm install -g "$pkg" && { ok "'$pkg' installed via npm."; return 0; }
   fi
 
   # 5. pacman via Arch distrobox container
@@ -105,7 +120,7 @@ do_remove() {
 do_sysupdate() {
   need_root sysupdate
   say "Updating EVERYTHING..."
-  sudo apt update && sudo apt full-upgrade -y
+  $SUDO apt update && $SUDO apt full-upgrade -y
   flatpak update -y 2>/dev/null || true
   snap refresh 2>/dev/null || true
   npm update -g 2>/dev/null || true

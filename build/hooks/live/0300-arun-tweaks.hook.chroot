@@ -36,6 +36,12 @@ cp -r "$SRC/assets/wallpapers" /usr/share/backgrounds/arunlinux 2>/dev/null || {
   cp -r "$SRC/assets/wallpapers"/* /usr/share/backgrounds/arunlinux/
 }
 cp "$SRC/assets/logo.png" /usr/share/arunlinux/logo.png
+# Setup scripts must ship too - arun-drivers / arun-welcome delegate to them
+mkdir -p /usr/share/arunlinux/scripts
+cp "$SRC/scripts"/*.sh /usr/share/arunlinux/scripts/ 2>/dev/null || true
+# Distro icon (used by the Welcome Center .desktop entry)
+install -Dm644 "$SRC/assets/arunlinux.svg" /usr/share/icons/hicolor/scalable/apps/arunlinux.svg
+install -Dm644 "$SRC/assets/arunlinux.svg" /usr/share/pixmaps/arunlinux.svg
 ln -sf /usr/share/arunlinux/arun-pkg/arun-pkg /usr/local/bin/arun-pkg
 ln -sf /usr/share/arunlinux/arun-optimizer/arun-optimizer /usr/local/bin/arun-optimizer
 ln -sf /usr/share/arunlinux/arun-wallpapers/arun-wallpapers /usr/local/bin/arun-wallpapers

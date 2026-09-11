@@ -11,6 +11,8 @@
 # Safe to re-run. Takes ~30–60 min depending on network.
 # ============================================================================
 set -euo pipefail
+# Unattended run: never block on debconf prompts (children inherit this).
+export DEBIAN_FRONTEND=noninteractive
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOG="/tmp/arunlinux-install.log"
@@ -33,7 +35,7 @@ echo "   Base OS: ${PRETTY_NAME:-unknown}" | tee -a "$LOG"
 
 # --- 1. Base update -------------------------------------------------------------
 log "Updating base system..."
-apt update && apt full-upgrade -y
+apt update && apt full-upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 ok "Base updated."
 
 # --- 2. Fusion desktop (XFCE + LXQt, debloated) ----------------------------------

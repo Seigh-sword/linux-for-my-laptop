@@ -19,6 +19,7 @@ install -Dm644 "$SRC/kernel/sysctl/99-arunlinux.conf" /etc/sysctl.d/99-arunlinux
 install -Dm644 "$SRC/kernel/zram/zram-generator.conf" /etc/systemd/zram-generator.conf
 install -Dm644 "$SRC/kernel/zram/zram-swap.default" /etc/default/zramswap
 install -Dm644 "$SRC/kernel/modprobe/i915.conf" /etc/modprobe.d/i915-arunlinux.conf
+install -Dm644 "$SRC/kernel/modprobe/arunlinux-blacklist.conf" /etc/modprobe.d/arunlinux-blacklist.conf
 install -Dm644 "$SRC/kernel/earlyoom/earlyoom.default" /etc/default/earlyoom
 
 # --- os-release branding (version baked in by build-iso.sh) ---

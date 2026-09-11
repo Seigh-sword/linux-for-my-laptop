@@ -74,6 +74,9 @@ the ISO at `/usr/share/arunlinux/scripts/`) adds the userspace layer:
 - **fail2ban**: brute-force protection for SSH
 - **SSH lockdown**: `PermitRootLogin no` (only if sshd is installed; password
   auth is left untouched)
+- **Rare-protocol blocklist**: `kernel/modprobe/arunlinux-blacklist.conf`
+  disables dccp/sctp/rds/tipc via `install ... /bin/false`, so even an
+  explicit `modprobe` cannot load them (see `docs/SOURCES.md`)
 
 ## Verify everything after install
 ```bash

@@ -7,8 +7,10 @@ set -euo pipefail
 
 echo "==> Installing ArunDE Fusion desktop..."
 
-# --- Enable contrib/non-free/firmware repos (Debian) ---
-if grep -qi debian /etc/os-release; then
+# --- Enable contrib/non-free/firmware repos (Debian only, NOT Ubuntu) ---
+# NOTE: Ubuntu's os-release contains ID_LIKE=debian, so a naive grep would
+# match Ubuntu too and inject Debian-only components into Ubuntu sources.
+if [ -f /etc/debian_version ] && ! grep -qi ubuntu /etc/os-release; then
   apt install -y software-properties-common 2>/dev/null || true
   add-apt-repository -y contrib 2>/dev/null || true
   add-apt-repository -y non-free 2>/dev/null || true

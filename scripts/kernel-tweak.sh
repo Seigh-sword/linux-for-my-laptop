@@ -30,8 +30,9 @@ fi
 install -Dm644 "$REPO_DIR/kernel/sysctl/99-arunlinux.conf" /etc/sysctl.d/99-arunlinux.conf
 sysctl --system >/dev/null 2>&1 || true
 
-# --- Intel iGPU modprobe tweaks ---
+# --- Intel iGPU modprobe tweaks + rare-protocol blacklist ---
 install -Dm644 "$REPO_DIR/kernel/modprobe/i915.conf" /etc/modprobe.d/i915-arunlinux.conf
+install -Dm644 "$REPO_DIR/kernel/modprobe/arunlinux-blacklist.conf" /etc/modprobe.d/arunlinux-blacklist.conf
 update-initramfs -u 2>/dev/null || true
 
 # --- earlyoom (freeze protection) ---

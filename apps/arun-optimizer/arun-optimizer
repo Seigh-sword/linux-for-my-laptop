@@ -20,6 +20,8 @@ status() {
   echo -n "Battery : "; (upower -i $(upower -e | grep BAT) 2>/dev/null | grep -E 'percentage|state' | tr '\n' ' ') || echo "no battery / desktop"
   echo -n "Top RAM hogs:"; ps aux --sort=-%mem | awk 'NR<=6{printf "\n   %-25s %s", $11, $4"%"}'; echo
   echo -n "earlyoom: "; systemctl is-active earlyoom 2>/dev/null || echo "not running (run: sudo systemctl enable --now earlyoom)"
+  echo -n "Firewall: "; ufw status 2>/dev/null | head -1 || echo "ufw not installed"
+  echo -n "Auto-updates: "; systemctl is-enabled unattended-upgrades 2>/dev/null || echo "not installed"
   echo -n "TLP power: "; tlp-stat -s 2>/dev/null | grep -m1 "power source" || echo unknown
 }
 

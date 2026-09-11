@@ -1,11 +1,11 @@
 #!/bin/bash
 # ============================================================================
-# 🌟 arunlinux master installer
+# arunlinux master installer
 # Transforms a fresh Debian 13 (trixie) or Ubuntu 24.04 install into arunlinux.
 # ----------------------------------------------------------------------------
 # Usage:
-#   git clone https://github.com/Seigh-sword/linux-for-my-laptop.git
-#   cd linux-for-my-laptop
+#   git clone https://github.com/Seigh-sword/arunlinux.git
+#   cd arunlinux
 #   sudo bash scripts/install-arunlinux.sh
 #
 # Safe to re-run. Takes ~30–60 min depending on network.
@@ -17,14 +17,14 @@ LOG="/tmp/arunlinux-install.log"
 STEP=0
 
 log()  { echo -e "\n\033[1;36m[$((++STEP))] $*\033[0m" | tee -a "$LOG"; }
-ok()   { echo -e "\033[1;32m    ✅ $*\033[0m" | tee -a "$LOG"; }
-warn() { echo -e "\033[1;33m    ⚠️  $*\033[0m" | tee -a "$LOG"; }
+ok()   { echo -e "\033[1;32m    [OK] $*\033[0m" | tee -a "$LOG"; }
+warn() { echo -e "\033[1;33m    [WARN] $*\033[0m" | tee -a "$LOG"; }
 
-if [ "$(id -u)" -ne 0 ]; then echo "❌ Run as root: sudo bash scripts/install-arunlinux.sh"; exit 1; fi
+if [ "$(id -u)" -ne 0 ]; then echo "ERROR: Run as root: sudo bash scripts/install-arunlinux.sh"; exit 1; fi
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME="$(getent passwd "$REAL_USER" | cut -d: -f6)"
 
-echo "🐧 arunlinux master installer — log: $LOG" | tee "$LOG"
+echo "arunlinux master installer - log: $LOG" | tee "$LOG"
 echo "   Repo: $REPO_DIR | User: $REAL_USER" | tee -a "$LOG"
 
 # --- Detect base ---------------------------------------------------------------
@@ -68,10 +68,14 @@ ok "Wine ready."
 
 # --- 8. Custom arunlinux apps + wallpapers -------------------------------------------
 log "Installing custom arunlinux apps + wallpapers..."
-mkdir -p /usr/share/arunlinux /usr/share/backgrounds/arunlinux
+mkdir -p /usr/share/arunlinux /usr/share/backgrounds/arunlinux /usr/share/arunlinux/scripts
 cp -r "$REPO_DIR/apps"/* /usr/share/arunlinux/
+cp "$REPO_DIR"/scripts/*.sh /usr/share/arunlinux/scripts/
 cp -r "$REPO_DIR/assets/wallpapers"/* /usr/share/backgrounds/arunlinux/
 cp "$REPO_DIR/assets/logo.png" /usr/share/arunlinux/logo.png
+install -Dm644 "$REPO_DIR/assets/arunlinux.svg" /usr/share/icons/hicolor/scalable/apps/arunlinux.svg
+install -Dm644 "$REPO_DIR/assets/arunlinux.svg" /usr/share/pixmaps/arunlinux.svg
+gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
 ln -sf /usr/share/arunlinux/arun-pkg/arun-pkg /usr/local/bin/arun-pkg
 ln -sf /usr/share/arunlinux/arun-optimizer/arun-optimizer /usr/local/bin/arun-optimizer
 ln -sf /usr/share/arunlinux/arun-wallpapers/arun-wallpapers /usr/local/bin/arun-wallpapers
@@ -95,12 +99,12 @@ if [ -f /etc/os-release ]; then
   sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"arunlinux $ARUN_VER (Debian-based)\"/" /etc/os-release
   grep -q '^NAME=' /etc/os-release && sed -i 's/^NAME=.*/NAME="arunlinux"/' /etc/os-release
 fi
-ok "This machine is now arunlinux. 🎉"
+ok "This machine is now arunlinux."
 
 echo ""
 echo "=================================================================="
-echo "  🎉 arunlinux installation complete!"
-echo "  👉 REBOOT now, then run:  arun-welcome"
-echo "  📦 Try: arun-pkg search <app>   |  🖼️  Try: arun-wallpapers"
-echo "  📄 Full log: $LOG"
+echo "  arunlinux installation complete!"
+echo "  REBOOT now, then run:  arun-welcome"
+echo "  Try: arun-pkg search <app>   |   Try: arun-wallpapers"
+echo "  Full log: $LOG"
 echo "=================================================================="

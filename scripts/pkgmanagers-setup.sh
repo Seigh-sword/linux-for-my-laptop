@@ -1,10 +1,27 @@
 #!/bin/bash
 # ============================================================================
 # arunlinux — ALL the package managers + VS Code + Chrome
-#   apt ✅ (native)  flatpak ✅  snap ✅  npm ✅ (with Node)
-#   AppImage ✅ (fuse + Gear Lever)  pacman ✅ (real Arch container via distrobox)
+#   apt (native), flatpak, snap, npm (with Node)
+#   AppImage (fuse + Gear Lever), pacman (real Arch container via distrobox)
 # ============================================================================
 set -euo pipefail
+
+# fetch_key <url> <keyring-path> <expected-key-id>
+# Downloads a repo signing key and installs it ONLY if its fingerprint matches.
+fetch_key() {
+  local url="$1" keyring="$2" keyid="$3" tmp
+  tmp="$(mktemp /tmp/repokey-XXXXXX.asc)"
+  if ! wget -qO "$tmp" "$url"; then echo "    [WARN] download failed: $url"; rm -f "$tmp"; return 1; fi
+  if gpg --show-keys "$tmp" 2>/dev/null | tr -d ' ' | grep -q "$keyid"; then
+    gpg --dearmor < "$tmp" > "$keyring"
+    chmod 644 "$keyring"
+    echo "    Key OK (fingerprint contains $keyid)."
+  else
+    echo "    [WARN] fingerprint check FAILED for $url - key NOT installed."
+    rm -f "$tmp"; return 1
+  fi
+  rm -f "$tmp"
+}
 
 echo "==> [1/6] apt: core tools..."
 apt update
@@ -59,7 +76,7 @@ if command -v distrobox >/dev/null 2>&1; then
   echo "    Then:  distrobox enter arch  →  sudo pacman -Syu <pkg>"
   echo "    Our 'arun-pkg' wrapper does this automatically for pacman commands."
 else
-  echo "    ⚠️  distrobox missing — pacman-container unavailable."
+  echo "    [WARN] distrobox missing - pacman-container unavailable."
 fi
 
 # --- AppImage helper: Gear Lever (flatpak) ---
@@ -67,10 +84,10 @@ flatpak install -y flathub it.mijorus.gearlever 2>/dev/null || echo "    (Gear L
 
 echo ""
 echo "--- Package manager report ---"
-command -v apt && apt --version | head -1
-command -v flatpak && flatpak --version
-command -v snap && snap --version | head -1
-command -v npm && echo "npm $(npm -v) + node $(node -v)"
-command -v code && echo "VS Code ✅"
-command -v google-chrome && echo "Chrome ✅"
-echo "✅ All package managers ready. Use: arun-pkg <install|search|remove> <app>"
+command -v apt >/dev/null && apt --version | head -1 || echo "(apt missing?)"
+command -v flatpak >/dev/null && flatpak --version || echo "(flatpak missing)"
+command -v snap >/dev/null && snap --version | head -1 || echo "(snap missing)"
+command -v npm >/dev/null && echo "npm $(npm -v) + node $(node -v)" || echo "(npm missing)"
+command -v code >/dev/null && echo "VS Code installed" || echo "(VS Code missing)"
+command -v google-chrome >/dev/null && echo "Chrome installed" || echo "(Chrome missing)"
+echo "[OK] All package managers ready. Use: arun-pkg <install|search|remove> <app>"

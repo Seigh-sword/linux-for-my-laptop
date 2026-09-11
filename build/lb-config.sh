@@ -49,4 +49,4 @@ lb config noauto \
   --bootappend-live "boot=live components username=arun hostname=arunlinux quiet splash intel_iommu=on i915.enable_psr=1 i915.enable_fbc=1 zswap.enabled=0" \
   "$@"
 
-echo "✅ live-build configured for ${DISTRO_NAME} v${VERSION} (${DEBIAN_DIST}/${ARCH})"
+echo "[OK] live-build configured for ${DISTRO_NAME} v${VERSION} (${DEBIAN_DIST}/${ARCH})"

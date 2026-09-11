@@ -1,17 +1,17 @@
 #!/bin/bash
 # ============================================================================
-# ⚡ arun-optimizer — RAM / battery / startup optimizer for 4 GB laptops
+# arun-optimizer - RAM / battery / startup optimizer for low-RAM laptops
 # Usage: arun-optimizer   (interactive menu)   |   arun-optimizer status
 # ============================================================================
 set -uo pipefail
 
 GREEN='\033[1;32m'; CYAN='\033[1;36m'; YELLOW='\033[1;33m'; RED='\033[1;31m'; NC='\033[0m'
 say() { echo -e "${CYAN}$*${NC}"; }
-ok()  { echo -e "${GREEN}✅ $*${NC}"; }
-warn(){ echo -e "${YELLOW}⚠️  $*${NC}"; }
+ok()  { echo -e "${GREEN}[OK] $*${NC}"; }
+warn(){ echo -e "${YELLOW}[WARN] $*${NC}"; }
 
 status() {
-  say "════════ 🖥️  arunlinux status ════════"
+  say "======== arunlinux status ========"
   echo -n "Memory : "; free -h | awk 'NR==2{print $3" used / "$2" total ("$7" avail)"}'
   echo -n "Swap   : "; (swapon --show 2>/dev/null | tail -n +2 | awk '{print $1" "$3" pri="$5}' | head -3) || echo none
   echo -n "zram   : "; zramctl 2>/dev/null | tail -n +2 | head -2 || echo "not active"
@@ -24,7 +24,7 @@ status() {
 }
 
 clean_ram() {
-  say "🧹 Safe RAM clean (drops only reclaimable caches — your apps stay open)..."
+  say "Safe RAM clean (drops only reclaimable caches - your apps stay open)..."
   sync
   if [ "$(id -u)" -eq 0 ]; then echo 1 > /proc/sys/vm/drop_caches && ok "Caches dropped.";
   else sudo sh -c 'sync; echo 1 > /proc/sys/vm/drop_caches' && ok "Caches dropped."; fi
@@ -32,7 +32,7 @@ clean_ram() {
 }
 
 startup_list() {
-  say "🚀 Startup programs (autostart):"
+  say "Startup programs (autostart):"
   for d in "$HOME/.config/autostart" /etc/xdg/autostart; do
     [ -d "$d" ] || continue
     echo "  — $d:"
@@ -44,21 +44,21 @@ startup_list() {
 }
 
 battery_saver() {
-  say "🔋 Battery saver: forcing power-save mode..."
+  say "Battery saver: forcing power-save mode..."
   sudo tlp bat || warn "tlp not installed"
   echo "powersave" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true
   ok "Battery saver ON. (Back to normal: sudo tlp ac)"
 }
 
 performance() {
-  say "🚀 Performance mode..."
+  say "Performance mode..."
   sudo tlp ac || warn "tlp not installed"
   echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true
   ok "Performance mode ON."
 }
 
 clean_disk() {
-  say "💽 Disk clean..."
+  say "Disk clean..."
   sudo apt autoremove -y && sudo apt autoclean
   flatpak uninstall --unused -y 2>/dev/null || true
   journalctl --vacuum-time=7d 2>/dev/null || sudo journalctl --vacuum-time=7d
@@ -68,7 +68,7 @@ clean_disk() {
 
 chrome_diet() {
   cat <<'EOF'
-🍔 Chrome on 4 GB — survival tips:
+Chrome on low RAM - survival tips:
   1. Turn ON "Memory Saver":  ⋮ → Settings → Performance → Memory Saver
   2. Turn ON "Energy Saver" on the same page
   3. Keep ≤ 10 tabs; use OneTab / tab groups for the rest
@@ -81,14 +81,14 @@ EOF
 menu() {
   while true; do
     echo ""
-    say "════════ ⚡ arun-optimizer ════════"
-    echo "  1) 📊 System status"
-    echo "  2) 🧹 Clean RAM (safe)"
-    echo "  3) 🚀 List startup programs"
-    echo "  4) 🔋 Battery saver ON"
-    echo "  5) 🚀 Performance mode ON"
-    echo "  6) 💽 Clean disk (apt, flatpak, logs)"
-    echo "  7) 🍔 Chrome-on-4GB tips"
+    say "======== arun-optimizer ========"
+    echo "  1) System status"
+    echo "  2) Clean RAM (safe)"
+    echo "  3) List startup programs"
+    echo "  4) Battery saver ON"
+    echo "  5) Performance mode ON"
+    echo "  6) Clean disk (apt, flatpak, logs)"
+    echo "  7) Chrome low-RAM tips"
     echo "  0) Exit"
     read -rp "Choose: " c
     case "$c" in

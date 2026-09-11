@@ -44,3 +44,10 @@ fonts-cascadia-code
 # --- Network extras ---
 openssh-client
 network-manager-openvpn-gnome
+
+# --- Security (firewall, auto security updates, brute-force protection) ---
+# Configured by scripts/security-harden.sh (runs during install, safe to re-run)
+ufw
+fail2ban
+unattended-upgrades
+apt-listchanges

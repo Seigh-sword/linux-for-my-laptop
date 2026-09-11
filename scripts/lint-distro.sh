@@ -10,9 +10,9 @@ FAIL=0
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 say()  { echo -e "\033[1;36m==>\033[0m $*"; }
-ok()   { echo -e "    \033[1;32m✅ $*\033[0m"; }
-warn() { echo -e "    \033[1;33m⚠️  $*\033[0m"; }
-err()  { echo -e "    \033[1;31m❌ $*\033[0m"; FAIL=1; }
+ok()   { echo -e "    \033[1;32m[OK] $*\033[0m"; }
+warn() { echo -e "    \033[1;33m[WARN] $*\033[0m"; }
+err()  { echo -e "    \033[1;31m[FAIL] $*\033[0m"; FAIL=1; }
 
 cd "$REPO_DIR"
 
@@ -27,8 +27,8 @@ while IFS= read -r f; do
 done < <(find build/hooks scripts apps -type f \( -name "*.sh" -o -name "*.hook.chroot" -o -name "arun-*" ! -name "*.desktop" \) ! -path "*__pycache__*"; echo build/build-iso.sh; echo build/lb-config.sh)
 [ "$SYNTAX_FAIL" -eq 0 ] && ok "all shell scripts parse"
 
-# --- 2. hook naming (*.hook.chroot required by live-build) ---
-say "[2/4] Hook filenames..."
+# --- 2. hook naming (*.hook.chroot required by live-build) + config syntax ---
+say "[2/4] Hook filenames + config syntax..."
 BADH=0
 for h in build/hooks/live/* build/hooks/bootstrap/*; do
   [ -f "$h" ] || continue
@@ -38,6 +38,25 @@ for h in build/hooks/live/* build/hooks/bootstrap/*; do
   esac
 done
 [ "$BADH" -eq 0 ] && ok "all hooks named *.hook.chroot"
+# sysctl files: every active line must be "dotted.key = value"
+BADS=0
+for c in kernel/sysctl/*.conf; do
+  [ -f "$c" ] || continue
+  BAD_LINES="$(grep -vE '^[[:space:]]*(#|$)' "$c" | grep -vE '^[[:space:]]*[A-Za-z0-9_./-]+[[:space:]]*=[[:space:]]*[^[:space:]]+' || true)"
+  if [ -n "$BAD_LINES" ]; then
+    err "malformed sysctl line(s) in $c:"; printf '%s\n' "$BAD_LINES" | sed 's/^/    /'; BADS=1
+  fi
+done
+[ "$BADS" -eq 0 ] && ok "sysctl configs well-formed"
+# .desktop files: must carry the required freedesktop keys
+BADD=0
+for d in apps/*/*.desktop; do
+  [ -f "$d" ] || continue
+  for key in '^Name=' '^Exec=' '^Type=' '^Icon='; do
+    grep -q "$key" "$d" || { err "$d is missing $key"; BADD=1; }
+  done
+done
+[ "$BADD" -eq 0 ] && ok "all .desktop files have Name/Exec/Type/Icon"
 
 # --- 3. live-build flag validation -------------------------------------------
 say "[3/4] live-build flags (lb config trial run)..."
@@ -91,5 +110,5 @@ else
 fi
 
 echo ""
-if [ "$FAIL" -eq 0 ]; then echo "🎉 LINT CLEAN — safe to build the ISO."; exit 0;
-else echo "🔧 LINT FOUND PROBLEMS — fix these before building."; exit 1; fi
+if [ "$FAIL" -eq 0 ]; then echo "LINT CLEAN - safe to build the ISO."; exit 0;
+else echo "LINT FOUND PROBLEMS - fix these before building."; exit 1; fi

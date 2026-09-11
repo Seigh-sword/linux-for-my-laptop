@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
 # arunlinux — developer stack
-#   C/C++ ✅  Rust ✅  Go ✅  Node ✅  Java ✅  Kotlin ✅
+#   C/C++, Rust, Go, Node, Java, Kotlin
 # Usage: sudo bash scripts/dev-setup.sh [username]
 # ============================================================================
 set -euo pipefail
@@ -30,11 +30,17 @@ fi
 # --- Go (official tarball, latest stable) ---
 echo "==> [3/6] Go..."
 if ! command -v go >/dev/null 2>&1; then
-  GO_VER="$(curl -fsSL https://go.dev/VERSION?m=text | head -1)"
-  curl -fsSL "https://go.dev/dl/${GO_VER}.linux-amd64.tar.gz" -o /tmp/go.tgz
-  rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz
-  ln -sf /usr/local/go/bin/go /usr/local/bin/go
-  ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
+  GO_VER="$(curl -fsSL https://go.dev/VERSION?m=text 2>/dev/null | head -1)"
+  if [ -z "$GO_VER" ]; then
+    echo "    [WARN] Could not reach go.dev - skipping Go (install it later)."
+  elif curl -fsSL "https://go.dev/dl/${GO_VER}.linux-amd64.tar.gz" -o /tmp/go.tgz; then
+    rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tgz && rm -f /tmp/go.tgz
+    ln -sf /usr/local/go/bin/go /usr/local/bin/go
+    ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
+  else
+    echo "    [WARN] Go download failed - skipping Go (install it later)."
+    rm -f /tmp/go.tgz
+  fi
 else
   echo "    $(go version) already installed."
 fi
@@ -80,4 +86,4 @@ echo -n "Go    : "; go version 2>/dev/null || echo missing
 echo -n "Node  : "; node -v 2>/dev/null; echo -n "npm   : "; npm -v 2>/dev/null
 echo -n "Java  : "; java -version 2>&1 | head -1
 echo -n "Kotlin: "; as_user 'source $HOME/.sdkman/bin/sdkman-init.sh >/dev/null 2>&1; kotlinc -version 2>&1 | head -1 || echo missing (open a new terminal)'
-echo "✅ Dev stack complete. Open a NEW terminal to get all PATHs."
+echo "[OK] Dev stack complete. Open a NEW terminal to get all PATHs."

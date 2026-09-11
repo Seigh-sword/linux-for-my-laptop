@@ -51,7 +51,7 @@ jobs:
             tail -30 lint-output.txt
             exit 0
           fi
-          PASS="✅ LINT PASSED"; [ "${{ steps.lint.outputs.exit_code }}" = "0" ] || PASS="❌ LINT FAILED"
+          PASS="[PASS] LINT PASSED"; [ "${{ steps.lint.outputs.exit_code }}" = "0" ] || PASS="[FAIL] LINT FAILED"
           {
             echo "## $PASS — run ${{ github.run_id }}"
             echo ""

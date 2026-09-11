@@ -9,7 +9,7 @@ for cand in /arun-src /root/arun-src "$(pwd)/arun-src"; do
   [ -d "$cand" ] && SRC="$cand" && break
 done
 if [ -z "$SRC" ]; then
-  echo "⚠️  arun-src not found, skipping (post-install script covers it)"
+  echo "[WARN] arun-src not found, skipping (post-install script covers it)"
   exit 0
 fi
 
@@ -26,7 +26,7 @@ ARUN_VER="$(cat "$SRC/VERSION" 2>/dev/null || echo "1.0")"
 sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"arunlinux $ARUN_VER\"/" /etc/os-release
 sed -i 's/^NAME=.*/NAME="arunlinux"/' /etc/os-release
 sed -i "s/^VERSION_ID=.*/VERSION_ID=\"$ARUN_VER\"/" /etc/os-release
-echo 'HOME_URL="https://github.com/Seigh-sword/linux-for-my-laptop"' >> /etc/os-release
+echo 'HOME_URL="https://github.com/Seigh-sword/arunlinux"' >> /etc/os-release
 
 # --- Custom apps ---
 mkdir -p /usr/share/arunlinux /usr/local/bin
@@ -61,8 +61,18 @@ systemctl enable earlyoom 2>/dev/null || true
 systemctl enable tlp 2>/dev/null || true
 systemctl enable thermald 2>/dev/null || true
 systemctl enable preload 2>/dev/null || true
+systemctl enable fail2ban 2>/dev/null || true
+
+# --- Security defaults: firewall policy + daily security updates ---
+ufw default deny incoming >/dev/null 2>&1 || true
+ufw default allow outgoing >/dev/null 2>&1 || true
+# (ufw itself is enabled on installed systems by scripts/security-harden.sh)
+cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
 
 # --- Clean up the build payload (wallpapers/apps already copied above) ---
 rm -rf /arun-src
 
-echo "==> [arunlinux hook] tweaks applied. 🎉"
+echo "==> [arunlinux hook] tweaks applied."

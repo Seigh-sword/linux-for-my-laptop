@@ -1,4 +1,4 @@
-# 🏭 How the arunlinux ISO factory works
+# How the arunlinux ISO factory works
 
 We use **Debian live-build** — the official tool for rolling custom Debian
 live/installer ISOs. Same tech behind Kali, MX and many remixes.
@@ -44,7 +44,7 @@ After editing: `cd iso-build && sudo lb clean && sudo lb build` for a fast rebui
 
 ## CI builds
 `.github/workflows/build-iso.yml` builds the ISO in a privileged Debian
-container on every push to `main` (and on demand). The ISO lands in the
+container on every push to any branch (and on demand). The ISO lands in the
 workflow's **Artifacts** (kept 7 days). Note: GitHub runners take ~30–50 min.
 
 ## Troubleshooting builds

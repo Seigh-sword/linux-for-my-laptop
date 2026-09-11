@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# arunlinux — kernel / RAM / GPU tuning for 4 GB Intel laptop
+# arunlinux - kernel / RAM / GPU tuning for low-RAM laptops
 # Applies: zram, sysctl, Intel i915 tweaks, earlyoom, tlp, thermald.
 # Safe to re-run.
 # ============================================================================
@@ -9,7 +9,7 @@ REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "==> Applying arunlinux kernel tweaks..."
 
-# --- Packages that make 4 GB feel like 6 GB ---
+# --- Packages that make low-RAM machines feel much bigger ---
 apt update
 apt install -y earlyoom tlp tlp-rdw thermald irqbalance preload \
   intel-microcode mesa-utils vulkan-tools 2>/dev/null || \
@@ -47,6 +47,9 @@ systemctl enable --now irqbalance 2>/dev/null || true
 
 # --- GRUB cmdline (append ours if missing) ---
 if [ -f /etc/default/grub ]; then
+  # Some installs lack the CMDLINE line entirely - create it so flags below stick
+  grep -q '^GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub || \
+    echo 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"' >> /etc/default/grub
   for flag in "intel_iommu=on" "i915.enable_psr=1" "i915.enable_fbc=1" "zswap.enabled=0" "nowatchdog"; do
     grep -q "$flag" /etc/default/grub || \
       sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$flag /" /etc/default/grub
@@ -57,4 +60,4 @@ fi
 echo "--- Status ---"
 echo -n "zram: "; (zramctl 2>/dev/null || swapon --show 2>/dev/null) | head -5
 echo -n "swappiness: "; cat /proc/sys/vm/swappiness
-echo "✅ Kernel tweaks applied (some need a REBOOT)."
+echo "[OK] Kernel tweaks applied (some need a REBOOT)."

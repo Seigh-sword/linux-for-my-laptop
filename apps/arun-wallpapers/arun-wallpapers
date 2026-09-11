@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# 🖼️ arunlinux Wallpaper Gallery — Bash + YAD edition
+# arunlinux Wallpaper Gallery - Bash + YAD edition
 # Collections: Minecraft / Spiderman / Ultra Graphics / All, with thumbnails.
 # Zero Python. Thumbnails cached in ~/.cache/arun-wallpapers.
 # ============================================================================
@@ -8,18 +8,18 @@ set -uo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 CACHE_DIR="$HOME/.cache/arun-wallpapers"
-CATEGORIES=("minecraft:🧱 Minecraft" "spiderman:🕷️ Spiderman" "ultra:✨ Ultra Graphics")
+CATEGORIES=("minecraft:Minecraft" "spiderman:Spiderman" "ultra:Ultra Graphics")
 
 find_root() {
   for c in "/usr/share/backgrounds/arunlinux" \
            "$APP_DIR/../../assets/wallpapers" \
-           "$HOME/linux-for-my-laptop/assets/wallpapers"; do
+           "$HOME/arunlinux/assets/wallpapers"; do
     [ -d "$c" ] && { echo "$c"; return 0; }
   done
   return 1
 }
 
-ROOT="$(find_root)" || { echo "❌ No wallpapers found — run the installer first!"; exit 1; }
+ROOT="$(find_root)" || { echo "ERROR: No wallpapers found - run the installer first!"; exit 1; }
 mkdir -p "$CACHE_DIR"
 
 # --- thumbnail backend (first available tool wins) ---
@@ -90,9 +90,9 @@ open_folder() {  # $1 = dir
 gui_pick_category() {
   local rows=() c
   for c in "${CATEGORIES[@]}"; do rows+=("${c#*:}"); done
-  rows+=("🎲 All")
+  rows+=("All")
   yad --title="arunlinux Wallpapers" --width=430 --height=360 \
-    --text="<big><b>🖼️ Wallpaper Gallery</b></big>\nPick a collection:" \
+    --text="<big><b>Wallpaper Gallery</b></big>\nPick a collection:" \
     --list --no-headers --column="Collection" "${rows[@]}" \
     --print-column=1 --separator="" \
     --button="Open folder:2" --button="Cancel:1" --button="Show:0"
@@ -135,7 +135,7 @@ gui_gallery() {  # $1 = folder ("" = all), $2 = title
         if [ -n "$sel" ] && [ -f "$sel" ]; then
           if set_wallpaper "$sel"; then
             yad --info --title="arunlinux" --width=400 \
-              --text="Wallpaper applied! 🎉\n<b>$(basename "$sel")</b>" --button="Nice!:0"
+              --text="Wallpaper applied!\n<b>$(basename "$sel")</b>" --button="Nice!:0"
           else
             yad --warning --title="arunlinux" --width=420 \
               --text="Couldn't set it automatically.\nFile is at:\n$sel" --button="OK:0"
@@ -173,9 +173,9 @@ text_loop() {
   local c folder n i img imgs
   while true; do
     echo ""
-    echo "════════ 🖼️ arunlinux Wallpapers ════════"
-    echo "  1) 🧱 Minecraft   2) 🕷️ Spiderman"
-    echo "  3) ✨ Ultra       4) 🎲 All"
+    echo "======== arunlinux Wallpapers ========"
+    echo "  1) Minecraft   2) Spiderman"
+    echo "  3) Ultra       4) All"
     echo "  0) Exit"
     read -rp "Choose: " c
     case "$c" in
@@ -191,8 +191,8 @@ text_loop() {
     read -rp "Pick a number (0 = back): " n
     [[ "$n" =~ ^[0-9]+$ ]] || continue
     if [ "$n" -ge 1 ] 2>/dev/null && [ "$n" -le "${#imgs[@]}" ] 2>/dev/null; then
-      if set_wallpaper "${imgs[$((n-1))]}"; then echo "✅ Wallpaper applied! 🎉"
-      else echo "❌ Couldn't set it (no xfconf/pcmanfm/feh here?)"; fi
+      if set_wallpaper "${imgs[$((n-1))]}"; then echo "[OK] Wallpaper applied!"
+      else echo "[ERROR] Couldn't set it (no xfconf/pcmanfm/feh here?)"; fi
     fi
   done
 }

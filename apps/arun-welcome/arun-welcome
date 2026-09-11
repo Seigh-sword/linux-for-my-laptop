@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# 🌟 arunlinux Welcome Center — Bash + YAD edition
+# arunlinux Welcome Center - Bash + YAD edition
 # Zero Python. Instant startup. ~5 MB RAM. Hack it — it's just bash!
 # ============================================================================
 set -uo pipefail
@@ -10,7 +10,7 @@ APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOGO=""
 for c in "/usr/share/arunlinux/logo.png" \
          "$APP_DIR/../../assets/logo.png" \
-         "$HOME/linux-for-my-laptop/assets/logo.png"; do
+         "$HOME/arunlinux/assets/logo.png"; do
   [ -f "$c" ] && LOGO="$c" && break
 done
 
@@ -18,7 +18,9 @@ done
 run_term() {  # $1 = shell command to run inside a terminal window
   if [ "${ARUN_TEXT:-0}" = "1" ]; then bash -c "$1"; return; fi
   local tmp; tmp="$(mktemp /tmp/arun-term-XXXXXX.sh)"
-  printf '#!/bin/bash\n%s\n\necho\nread -rp "Done - press Enter to close..." _\n' "$1" > "$tmp"
+  # Self-deleting script: unlinks itself on start so /tmp never fills up
+  # (safe: bash keeps the open file descriptor while it runs).
+  printf '#!/bin/bash\nrm -f "$0" 2>/dev/null\n%s\n\necho\nread -rp "Done - press Enter to close..." _\n' "$1" > "$tmp"
   chmod +x "$tmp"
   if command -v qterminal >/dev/null 2>&1; then
     qterminal -e "$tmp" &
@@ -45,7 +47,7 @@ run_gui() {  # $1 = app name (PATH first, repo-next-door fallback)
 
 find_script() {  # $1 = filename → prints full path
   for c in "/usr/share/arunlinux/scripts/$1" \
-           "$HOME/linux-for-my-laptop/scripts/$1" \
+           "$HOME/arunlinux/scripts/$1" \
            "$APP_DIR/../../scripts/$1"; do
     [ -f "$c" ] && { echo "$c"; return 0; }
   done
@@ -69,7 +71,7 @@ action_devstack() {
   if s="$(find_script dev-setup.sh)"; then
     run_term "sudo bash '$s'"
   else
-    run_term 'echo "dev-setup.sh not found — clone the repo first:"; echo "  git clone https://github.com/Seigh-sword/linux-for-my-laptop.git"'
+    run_term 'echo "dev-setup.sh not found — clone the repo first:"; echo "  git clone https://github.com/Seigh-sword/arunlinux.git"'
   fi
 }
 
@@ -99,17 +101,17 @@ gui() {
   [ -n "$LOGO" ] && img_args=(--image="$LOGO" --image-on-top)
   local out
   out="$(yad --title="Welcome to arunlinux" --width=620 \
-    --text="<big><b>🐧 Welcome to arunlinux!</b></big>\nBuilt for your 4 GB laptop — VS Code, Chrome & coding, ready to fly." \
+    --text="<big><b>Welcome to arunlinux!</b></big>\nA featherweight distro for everyday use - VS Code, Chrome and coding, ready to fly." \
     "${img_args[@]}" \
     --form \
-    --field="🔄  Update everything:FBTN"    "\"$0\" --action update" \
-    --field="🧑‍💻  Install dev stack:FBTN"   "\"$0\" --action devstack" \
-    --field="🖼️  Wallpaper Gallery:FBTN"    "\"$0\" --action wallpapers" \
-    --field="⚡  System Optimizer:FBTN"     "\"$0\" --action optimizer" \
-    --field="🔧  Driver Installer:FBTN"     "\"$0\" --action drivers" \
-    --field="📦  Demo: arun-pkg:FBTN"       "\"$0\" --action pkgdemo" \
+    --field="Update everything:FBTN"    "\"$0\" --action update" \
+    --field="Install dev stack:FBTN"   "\"$0\" --action devstack" \
+    --field="Wallpaper Gallery:FBTN"    "\"$0\" --action wallpapers" \
+    --field="System Optimizer:FBTN"     "\"$0\" --action optimizer" \
+    --field="Driver Installer:FBTN"     "\"$0\" --action drivers" \
+    --field="Demo: arun-pkg:FBTN"       "\"$0\" --action pkgdemo" \
     --field="Don't show again:CHK" FALSE \
-    --button="Let's go! 🚀:0")"
+    --button="Let's go!:0")"
   local choice
   choice="$(echo "$out" | awk -F'|' '{print $NF}')"
   if [ "$choice" = "TRUE" ]; then
@@ -121,7 +123,7 @@ gui() {
 text_menu() {
   while true; do
     echo ""
-    echo "════════ 🌟 arunlinux Welcome ════════"
+    echo "======== arunlinux Welcome ========"
     echo "  1) Update everything"
     echo "  2) Install dev stack"
     echo "  3) Wallpaper Gallery"

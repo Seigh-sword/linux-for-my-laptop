@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>arunlinux icon</title>
+  <desc>A flat-vector penguin struck by an orange lightning bolt on a navy rounded square.</desc>
+  <!-- background -->
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="#0A1E3D"/>
+  <!-- flippers -->
+  <ellipse cx="106" cy="336" rx="30" ry="82" fill="#1A3578" transform="rotate(16 106 336)"/>
+  <ellipse cx="358" cy="336" rx="30" ry="82" fill="#1A3578" transform="rotate(-16 358 336)"/>
+  <!-- body -->
+  <ellipse cx="232" cy="315" rx="130" ry="145" fill="#22449C"/>
+  <!-- head cap -->
+  <ellipse cx="232" cy="190" rx="95" ry="85" fill="#22449C"/>
+  <!-- belly -->
+  <ellipse cx="232" cy="398" rx="60" ry="58" fill="#FFFFFF"/>
+  <!-- face -->
+  <ellipse cx="232" cy="215" rx="72" ry="72" fill="#FFFFFF"/>
+  <!-- eyes -->
+  <circle cx="206" cy="208" r="12" fill="#0A1E3D"/>
+  <circle cx="258" cy="208" r="12" fill="#0A1E3D"/>
+  <!-- beak -->
+  <polygon points="232,232 254,252 232,272 210,252" fill="#F68B32"/>
+  <!-- lightning bolt: thick zigzag, navy silhouette underneath for a clean outline -->
+  <polyline points="420,70 330,270 392,275 282,452" fill="none"
+            stroke="#0A1E3D" stroke-width="56"
+            stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="10"/>
+  <polyline points="420,70 330,270 392,275 282,452" fill="none"
+            stroke="#F68B32" stroke-width="32"
+            stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="10"/>
+</svg>

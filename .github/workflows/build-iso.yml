@@ -74,18 +74,18 @@ jobs:
             tail -20 iso-build.log
             exit 0
           fi
-          PASS="✅ ISO BUILD PASSED"; [ "${{ steps.build.outputs.exit_code }}" = "0" ] || PASS="❌ ISO BUILD FAILED"
+          PASS="[PASS] ISO BUILD PASSED"; [ "${{ steps.build.outputs.exit_code }}" = "0" ] || PASS="[FAIL] ISO BUILD FAILED"
           {
             echo "## $PASS — run ${{ github.run_id }}"
             echo ""
-            echo "<details><summary>🔍 Error lines</summary>"
+            echo "<details><summary>Error lines</summary>"
             echo ""
             echo '```'
             grep -iE "error|E: |failed|FAIL" iso-build.log | grep -viE "dpkg.*warning|update-alternatives|ERROR.*squashfs.*ignored" | tail -30
             echo '```'
             echo "</details>"
             echo ""
-            echo "<details><summary>📜 Last 60 lines</summary>"
+            echo "<details><summary>Last 60 lines</summary>"
             echo ""
             echo '```'
             tail -60 iso-build.log

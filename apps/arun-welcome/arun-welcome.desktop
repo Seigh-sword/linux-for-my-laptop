@@ -2,7 +2,7 @@
 Name=arunlinux Welcome
 Comment=Welcome Center for arunlinux
 Exec=arun-welcome
-Icon=emblem-favorite
+Icon=arunlinux
 Terminal=false
 Type=Application
 Categories=System;Settings;

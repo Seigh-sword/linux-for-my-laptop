@@ -80,6 +80,22 @@ if command -v lb >/dev/null 2>&1; then
 else
   warn "lb not installed — skipping flag check (CI covers this)"
 fi
+# ISO9660 volume IDs are capped at 32 chars; xorriso aborts the build (exit 5)
+# when --iso-volume renders longer. Check both profiles with worst-case values
+# (each profile's own distro default + FULLVER "x86_64-v" + 7 hex chars).
+for cfg in build/lb-config.sh build/launcher/lb-config-launcher.sh; do
+  line="$(grep -o -- '--iso-volume "[^"]*"' "$cfg" | head -1)"
+  if [ -z "$line" ]; then err "no --iso-volume in $cfg"; continue; fi
+  tpl="${line#--iso-volume \"}"; tpl="${tpl%\"}"
+  dflt="$(sed -n 's/^DISTRO_NAME="${3:-\([^}]*\)}".*/\1/p' "$cfg" | head -1)"
+  [ -n "$dflt" ] || dflt="arunlinux-launcher"
+  rendered="$(printf '%s' "$tpl" | sed -e "s/\\\${DISTRO_NAME[^}]*}/$dflt/g" -e "s/\\\$DISTRO_NAME/$dflt/g" -e 's/\${VERSION[^}]*}/x86_64-v1234567/g' -e 's/\$VERSION/x86_64-v1234567/g' -e 's/\${FULLVER[^}]*}/x86_64-v1234567/g' -e 's/\$FULLVER/x86_64-v1234567/g')"
+  if [ "${#rendered}" -gt 32 ]; then
+    err "$cfg: --iso-volume renders too long (${#rendered} > 32): $rendered"
+  else
+    ok "$cfg volume id fits 32 chars ($rendered)"
+  fi
+done
 
 # --- 4. package resolvability (Debian trixie, root) ---------------------------
 say "[4/5] Package resolvability (apt dry-run)..."

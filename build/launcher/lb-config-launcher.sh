@@ -38,7 +38,9 @@ lb config noauto \
   --cache-indices "$LB_CACHE" \
   --cache-packages "$LB_CACHE" \
   --iso-publisher "arunlinux" \
-  --iso-volume "${DISTRO_NAME}-${VERSION}" \
+  # NOTE: name only - ISO9660 volume IDs max out at 32 chars and xorriso
+  # aborts the whole build when it is longer (name+version was 34 here).
+  --iso-volume "$DISTRO_NAME" \
   --iso-application "${DISTRO_NAME} ${VERSION}" \
   --image-name "arun-launcher" \
   --bootappend-live "boot=live components quiet" \

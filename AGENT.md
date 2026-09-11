@@ -139,6 +139,9 @@ bash -c '. lib/var.sh; . launcher/install-engine.sh; DRY_RUN=1 eng_partition_gui
 - GRUB on chroot installs: always use `--removable` for the EFI target (works
   without NVRAM/efivars, e.g. VMs and BIOS-booted live sessions), plus a
   `ef02` BIOS-boot partition so `--target=i386-pc` works on GPT too.
+- ISO9660 `--iso-volume` must render to 32 chars or fewer: xorriso aborts the
+  whole `lb build` (exit 5) when it is longer. Keep the launcher volume at the
+  bare distro name; the linter enforces the limit with worst-case values.
 
 ## Adding things
 

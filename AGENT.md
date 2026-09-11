@@ -37,8 +37,8 @@ kernel/                   sysctl / zram / modprobe / grub / earlyoom sources
 apps/<name>/<name>        executables (Bash); most ship a .desktop file
 assets/arunlinux.svg      distro icon (source of truth); logo.png = banner art
 docs/                     user guides; SOURCES.md = research links (keep updated)
-.github/workflows/        lint (~2 min) + full ISO (~25 min) on every push;
-                          launcher ISO on manual dispatch + weekly schedule
+.github/workflows/        lint (~2 min) + full ISO (~25 min) + launcher
+                          ISO (~15 min) on every push; ISOs also weekly
 ```
 
 ## Verify before you commit (run all of these)
@@ -83,9 +83,10 @@ bash -c '. lib/var.sh; . launcher/install-engine.sh; DRY_RUN=1 eng_partition_gui
 - `lint-packages.yml` (~2 min): runs `scripts/lint-distro.sh` in a
   debian:trixie container. Must stay green before caring about any ISO.
 - `build-iso.yml` (~25 min): full desktop ISO in a privileged container.
-- `build-launcher.yml` (~10-20 min): minimal launcher ISO. Manual dispatch
-  (`gh workflow run build-launcher.yml`) + weekly (Saturday 02:00 UTC) only —
-  never on push, so every-commit builds stay fast.
+- `build-launcher.yml` (~10-20 min): minimal launcher ISO, also on every push
+  (runs in parallel with the full ISO) + weekly (Saturday 02:00 UTC).
+  NOTE: `gh workflow run` only works once the file exists on `main`
+  (GitHub resolves dispatchable workflows from the default branch).
 - ISOs + sha256 land in Actions Artifacts (7-day retention). Workflows post
   log tails as a PR comment **only when a PR is open** for that branch.
 - Monitor runs with: `gh run watch <id> --exit-status`

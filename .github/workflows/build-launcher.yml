@@ -1,7 +1,7 @@
 # ============================================================================
 # Build the arunlinux LAUNCHER ISO (minimal console netinstaller).
-# Manual + weekly schedule only (NOT every push - the full ISO already
-# covers every commit). ISO -> Artifacts (kept 7 days).
+# Runs on every push (in parallel with the full ISO), plus weekly schedule.
+# ISO -> Artifacts (kept 7 days).
 # Filename: arunlinux-launcher-x86_64-v<commit>.hybrid.iso
 # ============================================================================
 name: Build launcher ISO
@@ -11,6 +11,7 @@ permissions:
   pull-requests: write
 
 on:
+  push:               # every commit on every branch
   schedule:
     - cron: '0 2 * * 6'   # fresh launcher every Saturday at 02:00 UTC
   workflow_dispatch:

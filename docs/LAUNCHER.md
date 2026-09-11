@@ -61,9 +61,9 @@ sudo bash build/build-launcher.sh
 # -> out/arunlinux-launcher-x86_64-v<commit>.hybrid.iso
 ```
 
-Or let CI build it: **Actions → Build launcher ISO → Run workflow**
-(manual + weekly schedule; not on every push). Flash with `dd`, Rufus, or
-Balena Etcher, boot, and follow the menus.
+Or let CI build it: every commit triggers **Actions → Build launcher ISO**
+automatically (plus a weekly schedule and manual runs). Flash with `dd`,
+Rufus, or Balena Etcher, boot, and follow the menus.
 
 Profile layout (`build/launcher/`): `lb-config-launcher.sh` (minimal flags,
 no debian-installer — *we* are the installer), `launcher.list.chroot`

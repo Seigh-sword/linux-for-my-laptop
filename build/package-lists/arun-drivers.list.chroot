@@ -4,7 +4,7 @@
 # firmware so it "just works" like Ubuntu does.
 # ============================================================================
 
-# --- Intel CPU + iGPU (your laptop) ---
+# --- Intel CPU + iGPU ---
 intel-microcode
 mesa-utils
 mesa-va-drivers

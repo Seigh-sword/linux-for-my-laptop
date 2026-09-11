@@ -29,21 +29,21 @@ esac
 FULLVER="${ARCH_LABEL}-v${VERSION}"
 
 echo "=============================================="
-echo "  🐧 Building ${DISTRO_NAME} ${FULLVER}"
+echo "  Building ${DISTRO_NAME} ${FULLVER}"
 echo "  Base: Debian ${DEBIAN_DIST} (${ARCH} = ${ARCH_LABEL})"
 echo "=============================================="
 
 # --- 0. Sanity checks --------------------------------------------------------
 if [ "$(id -u)" -ne 0 ]; then
-  echo "❌ Please run as root: sudo bash build/build-iso.sh"
+  echo "ERROR: Please run as root: sudo bash build/build-iso.sh"
   exit 1
 fi
 if [ ! -f build/lb-config.sh ]; then
-  echo "❌ Run from the repo root: sudo bash build/build-iso.sh"
+  echo "ERROR: Run from the repo root: sudo bash build/build-iso.sh"
   exit 1
 fi
 if ! command -v lb >/dev/null 2>&1; then
-  echo "📦 Installing live-build..."
+  echo "Installing live-build..."
   apt update && apt install -y live-build debootstrap cdebootstrap \
     squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin \
     mtools dosfstools parted curl git
@@ -61,12 +61,12 @@ echo "$FULLVER" > "$WORKDIR/arun-src/VERSION"
 cd "$WORKDIR"
 
 # --- 2. Configure live-build --------------------------------------------------
-echo "⚙️  Configuring live-build..."
+echo "Configuring live-build..."
 bash lb-config.sh "$DEBIAN_DIST" "$ARCH" "$DISTRO_NAME" "$FULLVER"
 
 # --- 2b. Install our customizations into the live-build config tree -----------
 # (lb build ONLY reads config/ — lists, hooks and includes must live there!)
-echo "📦 Installing arunlinux customizations into config/..."
+echo "Installing arunlinux customizations into config/..."
 mkdir -p config/package-lists config/hooks/live config/hooks/bootstrap \
          config/includes.installer config/includes.chroot
 cp package-lists/*.list.chroot config/package-lists/
@@ -84,7 +84,7 @@ echo "   package lists: $(ls config/package-lists/ | tr '\n' ' ')"
 echo "   hooks: $(ls config/hooks/live/ config/hooks/bootstrap/ 2>/dev/null | tr '\n' ' ')"
 
 # --- 3. Build -----------------------------------------------------------------
-echo "🔨 Building ISO (this takes 20–60 minutes)..."
+echo "Building ISO (this takes 20-60 minutes)..."
 lb build
 
 # --- 4. Collect output --------------------------------------------------------
@@ -100,12 +100,12 @@ if [ -f "$ISO_SRC" ]; then
   ( sha256sum "$ISO_DST" > "${ISO_DST}.sha256" )
   echo ""
   echo "=============================================="
-  echo "  ✅ DONE: $ISO_DST"
+  echo "  DONE: $ISO_DST"
   echo "  Size: $(du -h "$ISO_DST" | cut -f1)"
   echo "  Flash it with: sudo dd if=$ISO_DST of=/dev/sdX bs=4M status=progress"
   echo "  (replace /dev/sdX with your USB stick!)"
   echo "=============================================="
 else
-  echo "❌ Build failed — no ISO produced. Check the log above."
+  echo "ERROR: Build failed - no ISO produced. Check the log above."
   exit 1
 fi

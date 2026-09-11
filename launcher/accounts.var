@@ -1,0 +1,17 @@
+# ============================================================================
+# accounts.var - user accounts the launcher creates on the installed system.
+# Managed with: arun-accounts [--db this-file] add|del|list ...
+# SECURITY: passwords are NEVER stored here. The launcher asks for them at
+# install time and feeds them straight to chpasswd inside the target.
+#
+# Schema per account (NAME = linux username, lowercase):
+#   user.NAME.name = "NAME";
+#   user.NAME.fullname = "Display Name";
+#   user.NAME.admin = true;        (true = member of sudo)
+#   user.NAME.shell = "/bin/bash";
+# ============================================================================
+
+user.arun.name = "arun";
+user.arun.fullname = "arunlinux User";
+user.arun.admin = true;
+user.arun.shell = "/bin/bash";

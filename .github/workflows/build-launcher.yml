@@ -1,11 +1,10 @@
 # ============================================================================
-# Build the arunlinux ISO in the cloud (GitHub Actions)
-# Runs on EVERY commit (any branch) — no path filters — plus weekly schedule.
-# ISO → Artifacts (kept 7 days). Result posted as PR comment when PR is open.
-# Filename: arunlinux-x86_64-v<commit>.hybrid.iso
-# Note: live-build needs privileges → we build inside a privileged container.
+# Build the arunlinux LAUNCHER ISO (minimal console netinstaller).
+# Runs on every push (in parallel with the full ISO), plus weekly schedule.
+# ISO -> Artifacts (kept 7 days).
+# Filename: arunlinux-launcher-x86_64-v<commit>.hybrid.iso
 # ============================================================================
-name: Build arunlinux ISO
+name: Build launcher ISO
 
 permissions:
   contents: read
@@ -14,16 +13,15 @@ permissions:
 on:
   push:               # every commit on every branch
   schedule:
-    - cron: '0 2 * * 0'   # fresh ISO every Sunday at 02:00 UTC
+    - cron: '0 2 * * 6'   # fresh launcher every Saturday at 02:00 UTC
   workflow_dispatch:
 
-# New pushes cancel stale runs on the same branch (latest commit always wins)
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-iso:
+  build-launcher:
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     steps:
@@ -39,7 +37,7 @@ jobs:
           sudo apt-get clean || true
           df -h
 
-      - name: Build ISO in privileged Debian container
+      - name: Build launcher ISO in privileged Debian container
         id: build
         run: |
           set +e
@@ -51,10 +49,10 @@ jobs:
               apt-get install -y live-build debootstrap cdebootstrap \
                 squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin \
                 mtools dosfstools parted curl git ca-certificates
-              chmod +x build/build-iso.sh build/lb-config.sh \
-                build/hooks/live/* build/hooks/bootstrap/* 2>/dev/null || true
-              LB_CACHE=false VERSION='${{ github.sha }}' bash build/build-iso.sh
-            " 2>&1 | tee iso-build.log
+              chmod +x build/build-launcher.sh build/launcher/lb-config-launcher.sh \
+                build/launcher/*.hook.chroot 2>/dev/null || true
+              LB_CACHE=false VERSION='${{ github.sha }}' bash build/build-launcher.sh
+            " 2>&1 | tee launcher-build.log
           RC=${PIPESTATUS[0]}
           echo "exit_code=$RC" >> "$GITHUB_OUTPUT"
           exit $RC
@@ -70,25 +68,25 @@ jobs:
         run: |
           PR_NUM=$(gh pr list --head "${{ github.ref_name }}" --state open --json number --jq '.[0].number // empty')
           if [ -z "$PR_NUM" ]; then
-            echo "No open PR for branch ${{ github.ref_name }} — skipping PR comment."
-            tail -20 iso-build.log
+            echo "No open PR for branch ${{ github.ref_name }} - skipping PR comment."
+            tail -20 launcher-build.log
             exit 0
           fi
-          PASS="[PASS] ISO BUILD PASSED"; [ "${{ steps.build.outputs.exit_code }}" = "0" ] || PASS="[FAIL] ISO BUILD FAILED"
+          PASS="[PASS] LAUNCHER BUILD PASSED"; [ "${{ steps.build.outputs.exit_code }}" = "0" ] || PASS="[FAIL] LAUNCHER BUILD FAILED"
           {
-            echo "## $PASS — run ${{ github.run_id }}"
+            echo "## $PASS - run ${{ github.run_id }}"
             echo ""
             echo "<details><summary>Error lines</summary>"
             echo ""
             echo '```'
-            grep -iE "error|E: |failed|FAIL" iso-build.log | grep -viE "dpkg.*warning|update-alternatives|ERROR.*squashfs.*ignored" | tail -30
+            grep -iE "error|E: |failed|FAIL" launcher-build.log | grep -viE "dpkg.*warning|update-alternatives|ERROR.*squashfs.*ignored" | tail -30
             echo '```'
             echo "</details>"
             echo ""
             echo "<details><summary>Last 60 lines</summary>"
             echo ""
             echo '```'
-            tail -60 iso-build.log
+            tail -60 launcher-build.log
             echo '```'
             echo "</details>"
           } > report.md
@@ -100,14 +98,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: iso-build-log
-          path: iso-build.log
+          name: launcher-build-log
+          path: launcher-build.log
           retention-days: 7
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
-          name: arunlinux-iso
+          name: arunlinux-launcher-iso
           path: |
             out/*.iso
             out/*.sha256

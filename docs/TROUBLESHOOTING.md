@@ -1,4 +1,4 @@
-# 🩺 arunlinux troubleshooting
+# arunlinux troubleshooting
 
 ## Wi-Fi doesn't work / no networks
 ```bash
@@ -52,4 +52,4 @@ Normal (squashfs mount). Prefer apt/flatpak builds when available:
 ## Still stuck?
 - Full log of your install: `/tmp/arunlinux-install.log`
 - Health report: `arun-optimizer status` (paste this when asking for help)
-- File an issue: https://github.com/Seigh-sword/linux-for-my-laptop/issues
+- File an issue: https://github.com/Seigh-sword/arunlinux/issues

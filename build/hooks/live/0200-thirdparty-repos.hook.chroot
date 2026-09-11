@@ -6,15 +6,37 @@ echo "==> [arunlinux hook] adding VS Code + Chrome repos..."
 
 apt-get install -y wget gpg apt-transport-https
 
+# Install a repo key ONLY if its fingerprint matches the expected key id.
+fetch_key() {
+  url="$1"; keyring="$2"; keyid="$3"
+  tmp="$(mktemp /tmp/repokey-XXXXXX.asc)"
+  if ! wget -qO "$tmp" "$url"; then echo "[WARN] download failed: $url"; rm -f "$tmp"; return 1; fi
+  if gpg --show-keys "$tmp" 2>/dev/null | tr -d ' ' | grep -q "$keyid"; then
+    gpg --dearmor < "$tmp" > "$keyring"
+    chmod 644 "$keyring"
+    echo "Key OK (fingerprint contains $keyid)."
+  else
+    echo "[WARN] fingerprint check FAILED for $url - key NOT installed."
+    rm -f "$tmp"; return 1
+  fi
+  rm -f "$tmp"
+}
+
 # --- Visual Studio Code (Microsoft repo) ---
-wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/ms-vscode.gpg
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/ms-vscode.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+# Microsoft signing key: fingerprint BC52 8686 B50D 79E3 39D3 721C EB3E 94AD BE12 29CF
+if fetch_key "https://packages.microsoft.com/keys/microsoft.asc" "/usr/share/keyrings/ms-vscode.gpg" "EB3E94ADBE1229CF"; then
+  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/ms-vscode.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+fi
 
 # --- Google Chrome (Google repo) ---
-wget -qO- https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+# Google signing key: fingerprint EB4C 1BFD 4F04 2F6D DDCC EC91 7721 F63B D38B 4796
+if fetch_key "https://dl.google.com/linux/linux_signing_key.pub" "/usr/share/keyrings/google-chrome.gpg" "7721F63BD38B4796"; then
+  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+fi
 
 apt-get update
-apt-get install -y code google-chrome-stable || echo "⚠️  code/chrome install failed (no network during build?) — post-install script will retry"
+# Install separately: if one repo failed, the other must still install.
+apt-get install -y code 2>/dev/null || echo "[WARN] VS Code install failed (no network during build?) - post-install script will retry"
+apt-get install -y google-chrome-stable 2>/dev/null || echo "[WARN] Chrome install failed (no network during build?) - post-install script will retry"
 
 echo "==> [arunlinux hook] third-party repos done."

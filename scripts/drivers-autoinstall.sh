@@ -46,5 +46,5 @@ echo ""
 echo "--- Driver report ---"
 echo -n "VA-API (video accel): "; vainfo 2>/dev/null | grep -m1 "Driver version" || echo "check after reboot"
 echo -n "Vulkan ICDs: "; ls /usr/share/vulkan/icd.d/ 2>/dev/null | tr '\n' ' ' || echo none
-echo -n "Wi-Fi firmware: "; ls /lib/firmware/iwlwifi* 2>/dev/null | wc -l; echo " files"
-echo "✅ Drivers installed (REBOOT to load new microcode/firmware)."
+echo "Wi-Fi firmware files: $(ls /lib/firmware/iwlwifi* 2>/dev/null | wc -l)"
+echo "[OK] Drivers installed (REBOOT to load new microcode/firmware)."

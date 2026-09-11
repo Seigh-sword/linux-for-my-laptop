@@ -1,0 +1,332 @@
+#!/bin/bash
+# ============================================================================
+# arun-launcher - the tiny arunlinux installer/launcher
+# Boots from the launcher ISO (or runs on any Debian console), reads
+# versions-registry.var, and either net-installs a version to disk or writes
+# a full ISO to a USB stick. Accounts come from accounts.var (arun-accounts).
+# ----------------------------------------------------------------------------
+# Usage: arun-launcher [--dry-run] [--text] [--help]
+#   --dry-run prints every destructive step without running it.
+#   --text    forces plain-text menus (no whiptail).
+# ============================================================================
+set -uo pipefail
+
+LAUNCH_DIR="$(cd "$(dirname "$0")" && pwd)"
+DRY_RUN="${DRY_RUN:-0}"
+FORCE_TEXT=0
+
+for a in "$@"; do
+  case "$a" in
+    --dry-run) DRY_RUN=1;;
+    --text) FORCE_TEXT=1;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# //;s/^#//'; exit 0;;
+    *) echo "ERROR: unknown option $a (see --help)" >&2; exit 1;;
+  esac
+done
+export DRY_RUN
+
+# --- locate lib / engine / data (repo checkout or installed ISO paths) ---
+find_file() { # $1 = relative path -> first existing candidate
+  local r="$1" c
+  for c in "$LAUNCH_DIR/$r" \
+           "$LAUNCH_DIR/../$r" \
+           "/usr/local/lib/arun-launcher/$r" \
+           "/usr/share/arunlinux/launcher/$r"; do
+    [ -f "$c" ] && { echo "$c"; return 0; }
+  done
+  return 1
+}
+LIB="$(find_file "lib/var.sh" || find_file "../lib/var.sh")" \
+  || { echo "ERROR: lib/var.sh not found" >&2; exit 1; }
+ENGINE="$(find_file "install-engine.sh")" \
+  || { echo "ERROR: install-engine.sh not found" >&2; exit 1; }
+# shellcheck source=../lib/var.sh
+. "$LIB"
+# shellcheck source=install-engine.sh
+. "$ENGINE"
+
+BUNDLED_REG="$LAUNCH_DIR/versions-registry.var"
+[ -f "$BUNDLED_REG" ] || BUNDLED_REG="$(find_file "versions-registry.var")" || true
+BUNDLED_ACC="$LAUNCH_DIR/accounts.var"
+[ -f "$BUNDLED_ACC" ] || BUNDLED_ACC="$(find_file "accounts.var")" || true
+ACCOUNTS_BIN="$(command -v arun-accounts 2>/dev/null || true)"
+[ -z "$ACCOUNTS_BIN" ] && [ -x "$LAUNCH_DIR/../apps/arun-accounts/arun-accounts" ] \
+  && ACCOUNTS_BIN="$LAUNCH_DIR/../apps/arun-accounts/arun-accounts"
+
+# --- UI layer: whiptail when available, else plain text -----------------------
+UI="text"
+if [ "$FORCE_TEXT" -eq 0 ] && command -v whiptail >/dev/null 2>&1; then UI="whiptail"; fi
+
+ui_msg() { # $1 = title, $2 = text
+  if [ "$UI" = "whiptail" ]; then whiptail --title "$1" --msgbox "$2" 16 70
+  else printf '\n=== %s ===\n%s\n' "$1" "$2"; fi
+}
+ui_yesno() { # $1 = title, $2 = text -> rc 0 = yes
+  if [ "$UI" = "whiptail" ]; then whiptail --title "$1" --yesno "$2" 12 70
+  else
+    printf '\n%s\n%s [y/N]: ' "$1" "$2"
+    read -r a < /dev/tty 2>/dev/null || read -r a
+    case "$a" in [Yy]*) return 0;; *) return 1;; esac
+  fi
+}
+ui_menu() { # $1 = title, $2 = prompt, rest = tag/item pairs -> prints tag
+  local title="$1" prompt="$2"; shift 2
+  if [ "$UI" = "whiptail" ]; then
+    whiptail --title "$title" --menu "$prompt" 18 70 8 "$@" 3>&2 2>&1 1>&3
+  else
+    local tags=() items=()
+    while [ $# -gt 0 ]; do tags+=("$1"); items+=("$2"); shift 2; done
+    printf '\n=== %s ===\n%s\n' "$title" "$prompt"
+    local i
+    for i in "${!tags[@]}"; do printf '  %d) %s\n' "$((i+1))" "${items[$i]}"; done
+    read -rp "Choose [1-${#tags[@]}]: " c < /dev/tty 2>/dev/null || read -rp "Choose: " c
+    [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -ge 1 ] && [ "$c" -le "${#tags[@]}" ] || return 1
+    printf '%s' "${tags[$((c-1))]}"
+  fi
+}
+ui_input() { # $1 = title, $2 = prompt, $3 = default -> prints answer
+  if [ "$UI" = "whiptail" ]; then
+    whiptail --title "$1" --inputbox "$2" 10 70 "$3" 3>&2 2>&1 1>&3
+  else
+    read -rp "$2 [$3]: " a < /dev/tty 2>/dev/null || read -rp "$2 [$3]: " a
+    printf '%s' "${a:-$3}"
+  fi
+}
+ui_password() { # $1 = title, $2 = prompt -> prints secret
+  if [ "$UI" = "whiptail" ]; then
+    whiptail --title "$1" --passwordbox "$2" 10 70 3>&2 2>&1 1>&3
+  else
+    read -rsp "$2: " a < /dev/tty 2>/dev/null || read -rsp "$2: " a; echo
+    printf '%s' "$a"
+  fi
+}
+die() { ui_msg "Error" "$1"; exit 1; }
+
+# --- registry -----------------------------------------------------------------
+REG="$BUNDLED_REG"
+load_registry() {
+  [ -f "$REG" ] || die "No versions-registry.var found."
+  var_validate "$REG" >/dev/null 2>&1 || die "Bundled registry is corrupt: $REG"
+  local refresh
+  refresh="$(var_get "$REG" registry.refresh "" 2>/dev/null)" || refresh=""
+  if [ -n "$refresh" ] && eng_check_network; then
+    if curl -fsSL --max-time 20 "$refresh" -o /tmp/registry.var 2>/dev/null \
+       && var_validate /tmp/registry.var >/dev/null 2>&1; then
+      REG="/tmp/registry.var"
+    fi
+  fi
+}
+reg_count() { var_get "$REG" ver.count 0; }
+
+pick_version() { # $1 = kind filter (netinstall|iso) -> prints slot index
+  local kind="$1" n i id desc args=()
+  n="$(reg_count)"
+  for ((i=0; i<n; i++)); do
+    [ "$(var_get "$REG" "ver.$i.kind" "" 2>/dev/null)" = "$kind" ] || continue
+    id="$(var_get "$REG" "ver.$i.id" "slot$i")"
+    desc="$(var_get "$REG" "ver.$i.desc" "")"
+    args+=("$i" "$id - $desc")
+  done
+  [ "${#args[@]}" -gt 0 ] || { ui_msg "Versions" "No '$kind' versions in the registry."; return 1; }
+  ui_menu "arunlinux launcher" "Pick a version to install:" "${args[@]}"
+}
+
+# --- install-to-disk flow -------------------------------------------------------
+flow_install() {
+  eng_require_root || { ui_msg "Error" "Run as root."; return 1; }
+  eng_check_network || { ui_msg "No network" "Netinstall needs internet (packages come from the Debian mirror).\nPlug in a cable / connect Wi-Fi (nmtui), then retry."; return 1; }
+
+  local slot
+  slot="$(pick_version netinstall)" || return 0
+  local id commit payload desc
+  id="$(var_get "$REG" "ver.$slot.id")"
+  commit="$(var_get "$REG" "ver.$slot.commit" "")"
+  payload="$(var_get "$REG" "ver.$slot.payload" "")"
+  desc="$(var_get "$REG" "ver.$slot.desc" "")"
+  [ -n "$payload" ] || { ui_msg "Error" "Registry slot $slot has no payload URL."; return 1; }
+
+  # disk (never offer the disk we booted from)
+  local bootdisk d line dargs=()
+  bootdisk="$(eng_boot_disk 2>/dev/null)" || bootdisk=""
+  while read -r line; do
+    [ -n "$line" ] || continue
+    d="${line%% *}"
+    if [ "$d" = "$bootdisk" ]; then continue; fi
+    dargs+=("$d" "$line")
+  done < <(eng_list_disks)
+  [ "${#dargs[@]}" -gt 0 ] || { ui_msg "No disks" "No installable disks found.\n(Booted-from disk is hidden for safety.)"; return 1; }
+  local disk
+  disk="$(ui_menu "Target disk" "Install '$id' onto which disk?\nBooted-from disk is hidden. There is no undo." "${dargs[@]}")" || return 0
+
+  # guided vs manual partitioning
+  local mode
+  mode="$(ui_menu "Partitioning" "How to partition /dev/$disk?" \
+    guided "Guided - wipe disk, auto layout (BIOS+EFI+root)" \
+    manual "Manual - open cfdisk first, then pick partitions")" || return 0
+  local efi_part root_part
+  if [ "$mode" = "guided" ]; then
+    local sfx; sfx="$(eng_part_suffix "$disk")"
+    efi_part="/dev/${disk}${sfx}2"; root_part="/dev/${disk}${sfx}3"
+  else
+    ${EDITOR:-cfdisk} "/dev/$disk" 2>/dev/null || cfdisk "/dev/$disk" || true
+    local parts; parts="$(eng_list_parts "$disk")"
+    [ -n "$parts" ] || { ui_msg "Error" "No partitions found on /dev/$disk."; return 1; }
+    efi_part="$(ui_input "EFI partition" "Partitions on $disk:\n$parts\nType the EFI device (will be FORMATTED vfat)" "/dev/${disk}1")" || return 0
+    root_part="$(ui_input "Root partition" "Type the root device (will be FORMATTED ext4)" "/dev/${disk}2")" || return 0
+    [ -b "$efi_part" ] && [ -b "$root_part" ] || { ui_msg "Error" "Not block devices: $efi_part / $root_part"; return 1; }
+    [ "$efi_part" != "$root_part" ] || { ui_msg "Error" "EFI and root must differ."; return 1; }
+  fi
+
+  # accounts (work on a copy so Cancel never corrupts the bundled db)
+  local accdb=/tmp/arun-accounts.var passfile=/tmp/arun-passwd
+  cp "$BUNDLED_ACC" "$accdb" 2>/dev/null || printf '# accounts.var - managed by arun-accounts\n' > "$accdb"
+  if [ -n "$ACCOUNTS_BIN" ]; then
+    "$ACCOUNTS_BIN" --db "$accdb" --tui || true
+  else
+    ui_msg "Accounts" "arun-accounts not found - using bundled accounts as-is."
+  fi
+  local users=() k n admins=0
+  while IFS= read -r k; do
+    case "$k" in user.*.name) n="${k#user.}"; users+=("${n%.name}");; esac
+  done < <(var_keys "$accdb" "user." 2>/dev/null)
+  [ "${#users[@]}" -gt 0 ] || { ui_msg "Accounts" "Create at least one account first."; return 1; }
+  for n in "${users[@]}"; do
+    [ "$(var_get "$accdb" "user.$n.admin" false)" = "true" ] && admins=$((admins+1))
+  done
+  [ "$admins" -gt 0 ] || { ui_msg "Accounts" "At least one account must be admin (else no sudo on the new system)."; return 1; }
+  # passwords (asked now, never stored in the .var file)
+  rm -f "$passfile"; touch "$passfile"; chmod 600 "$passfile"
+  local p1 p2
+  for n in "${users[@]}"; do
+    while true; do
+      p1="$(ui_password "Password" "Password for '$n'")" || { rm -f "$passfile"; return 0; }
+      [ -n "$p1" ] || { ui_msg "Password" "Empty passwords are not allowed."; continue; }
+      p2="$(ui_password "Password" "Repeat password for '$n'")" || { rm -f "$passfile"; return 0; }
+      [ "$p1" = "$p2" ] && break
+      ui_msg "Password" "Passwords do not match, try again."
+    done
+    printf '%s:%s\n' "$n" "$p1" >> "$passfile"
+    p1=""; p2=""
+  done
+
+  local host tz dev ans
+  host="$(ui_input "Hostname" "Computer name" "arunlinux")" || { rm -f "$passfile"; return 0; }
+  [[ "$host" =~ ^[a-zA-Z0-9-]{1,63}$ ]] || { ui_msg "Error" "Bad hostname."; rm -f "$passfile"; return 1; }
+  tz="$(ui_input "Timezone" "Timezone (Area/City)" "UTC")" || { rm -f "$passfile"; return 0; }
+  if ui_yesno "Developer tools" "Also install the dev stack (Rust, Go, Java...)? Bigger download."; then dev=0; else dev=1; fi
+  if ui_yesno "Wine" "Also install Wine (Windows apps)?"; then wine=0; else wine=1; fi
+
+  # review + confirm
+  local uefi="BIOS/CSM"; eng_is_uefi && uefi="UEFI"
+  local summary="Version : $id ($desc)
+Disk    : /dev/$disk  [firmware: $uefi]
+EFI     : $efi_part (formatted vfat)
+Root    : $root_part (formatted ext4)
+Host    : $host, Timezone: $tz
+Users   : ${users[*]} ($admins admin)
+Dev     : $([ "$dev" = 0 ] && echo yes || echo no), Wine: $([ "$wine" = 0 ] && echo yes || echo no)
+
+ALL DATA ON /dev/$disk WILL BE ERASED."
+  if [ "$UI" = "whiptail" ]; then
+    ui_yesno "FINAL CONFIRMATION" "$summary" || { rm -f "$passfile"; return 0; }
+  else
+    ui_msg "FINAL CONFIRMATION" "$summary"
+    read -rp "Type INSTALL to wipe and install: " ans < /dev/tty 2>/dev/null || read -rp "Type INSTALL: " ans
+    if [ "$ans" != "INSTALL" ]; then rm -f "$passfile"; echo "Aborted."; return 0; fi
+  fi
+
+  # run the pipeline (log everything; DRY_RUN just prints the plan)
+  : > "$ENG_LOG"
+  export ARUN_VERSION="$id" ARUN_SKIP_DEV="$dev" ARUN_SKIP_WINE="$wine"
+  ui_msg "Installing" "Installing $id ...\nLog: $ENG_LOG\nThis takes a while (debootstrap + desktop + apps)."
+  echo "=== arunlinux install $id -> /dev/$disk ($(date -u)) ===" | tee -a "$ENG_LOG"
+  if [ "$mode" = "guided" ]; then
+    eng_partition_guided "$disk" 2>&1 | tee -a "$ENG_LOG" || { ui_msg "Failed" "Partitioning failed. See $ENG_LOG"; return 1; }
+  else
+    ENG_EFI="$efi_part"; ENG_ROOT="$root_part"
+  fi
+  eng_format 2>&1 | tee -a "$ENG_LOG"            || { ui_msg "Failed" "Format failed. See $ENG_LOG"; return 1; }
+  eng_debootstrap 2>&1 | tee -a "$ENG_LOG"       || { ui_msg "Failed" "debootstrap failed. See $ENG_LOG"; return 1; }
+  eng_write_base "$host" "$tz" 2>&1 | tee -a "$ENG_LOG" || { ui_msg "Failed" "Base config failed."; return 1; }
+  eng_fetch_payload "$payload" 2>&1 | tee -a "$ENG_LOG" || { ui_msg "Failed" "Payload download failed."; return 1; }
+  eng_apply_profile 2>&1 | tee -a "$ENG_LOG"     || { ui_msg "Failed" "Profile install failed. See $ENG_LOG"; return 1; }
+  eng_users "$accdb" "$passfile" 2>&1 | tee -a "$ENG_LOG" || { ui_msg "Failed" "User creation failed."; return 1; }
+  rm -f "$passfile"
+  eng_bootloader "/dev/$disk" 2>&1 | tee -a "$ENG_LOG" || { ui_msg "Failed" "Bootloader failed. See $ENG_LOG"; return 1; }
+  eng_cleanup 2>&1 | tee -a "$ENG_LOG"
+  cp "$accdb" /tmp/installed-accounts.var 2>/dev/null || true
+  ui_msg "Done" "$id is installed on /dev/$disk.\nRemove the launcher media, then reboot."
+  if ui_yesno "Reboot" "Reboot now?"; then reboot; fi
+}
+
+# --- download-ISO-to-USB flow ----------------------------------------------------
+flow_iso() {
+  eng_require_root || { ui_msg "Error" "Run as root."; return 1; }
+  eng_check_network || { ui_msg "No network" "Downloading an ISO needs internet."; return 1; }
+  local slot
+  slot="$(pick_version iso)" || return 0
+  local id url sha size
+  id="$(var_get "$REG" "ver.$slot.id")"
+  url="$(var_get "$REG" "ver.$slot.url" "")"
+  sha="$(var_get "$REG" "ver.$slot.sha256" "")"
+  size="$(var_get "$REG" "ver.$slot.size" "?")"
+  { [ -n "$url" ] && [ -n "$sha" ]; } || { ui_msg "Error" "Slot $slot lacks url/sha256."; return 1; }
+  local bootdisk dargs=() d line
+  bootdisk="$(eng_boot_disk 2>/dev/null)" || bootdisk=""
+  while read -r line; do
+    [ -n "$line" ] || continue
+    d="${line%% *}"
+    [ "$d" = "$bootdisk" ] && continue
+    dargs+=("$d" "$line")
+  done < <(eng_list_disks)
+  [ "${#dargs[@]}" -gt 0 ] || { ui_msg "No disks" "No USB/disk targets found."; return 1; }
+  local usb
+  usb="$(ui_menu "USB target" "Write '$id' ($size bytes) to which disk?\nALL DATA ON IT WILL BE ERASED." "${dargs[@]}")" || return 0
+  ui_yesno "Confirm" "Wipe /dev/$usb and write $id?" || return 0
+  local iso="/tmp/$id.iso"
+  eng_download_iso "$url" "$sha" "$iso" || { ui_msg "Failed" "Download/verify failed."; return 1; }
+  eng_flash_usb "$iso" "/dev/$usb" || { ui_msg "Failed" "Flash failed."; return 1; }
+  ui_msg "Done" "$id is on /dev/$usb. Boot it to install."
+}
+
+# --- main menu -------------------------------------------------------------------
+main_menu() {
+  local latest choice
+  latest="$(var_get "$REG" registry.latest "?" 2>/dev/null)"
+  while true; do
+    choice="$(ui_menu "arunlinux launcher" \
+      "Latest version: $latest  (registry: $REG)\nWhat next?" \
+      install  "Install arunlinux to this disk (netinstall)" \
+      iso      "Download a full ISO to a USB stick" \
+      accounts "Manage accounts (arun-accounts)" \
+      shell    "Quit to shell" \
+      reboot   "Reboot" \
+      off      "Power off")" || return 0
+    case "$choice" in
+      install) flow_install;;
+      iso) flow_iso;;
+      accounts)
+        if [ -n "$ACCOUNTS_BIN" ]; then "$ACCOUNTS_BIN" --tui
+        else ui_msg "Accounts" "arun-accounts not found."; fi
+        ;;
+      shell)
+        if systemctl is-active arun-launcher.service >/dev/null 2>&1; then
+          systemctl stop arun-launcher.service
+          systemctl start getty@tty1.service 2>/dev/null || true
+        fi
+        echo "Type 'exit' to return (service restarts the launcher)."
+        bash --noprofile --norc -i || true
+        ;;
+      reboot) reboot;;
+      off) poweroff;;
+    esac
+  done
+}
+
+# --- boot ------------------------------------------------------------------------
+if [ "$DRY_RUN" = "1" ]; then UI="text"; fi
+load_registry
+if ! command -v sgdisk >/dev/null 2>&1; then
+  ui_msg "Warning" "sgdisk/gdisk is missing - guided partitioning will fail.\nInstall it or use the launcher ISO."
+fi
+main_menu

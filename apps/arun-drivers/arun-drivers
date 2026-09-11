@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# 🔧 arun-drivers — the "Ubuntu drivers stitched into Debian" magic
+# arun-drivers - the "Ubuntu drivers stitched into Debian" magic
 # Detects your hardware and installs the right drivers + firmware.
 # Usage: sudo arun-drivers [--report-only]
 # ============================================================================
@@ -8,10 +8,10 @@ set -euo pipefail
 
 GREEN='\033[1;32m'; CYAN='\033[1;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
 say() { echo -e "${CYAN}$*${NC}"; }
-ok()  { echo -e "${GREEN}✅ $*${NC}"; }
+ok()  { echo -e "${GREEN}[OK] $*${NC}"; }
 
 report() {
-  say "════════ 🔧 Hardware report ════════"
+  say "======== Hardware report ========"
   echo "CPU : $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | xargs)"
   echo "GPU :"; lspci 2>/dev/null | grep -i -E 'vga|3d|display' | sed 's/^/  /' || echo "  (lspci unavailable)"
   echo "Net :"; lspci 2>/dev/null | grep -i -E 'network|ethernet' | sed 's/^/  /' || echo "  (none found)"
@@ -23,20 +23,20 @@ report() {
 }
 
 if [ "${1:-}" = "--report-only" ]; then report; exit 0; fi
-if [ "$(id -u)" -ne 0 ]; then echo "❌ Run as root: sudo arun-drivers"; exit 1; fi
+if [ "$(id -u)" -ne 0 ]; then echo "ERROR: Run as root: sudo arun-drivers"; exit 1; fi
 
 report
 echo ""
 
 # If the full installer script exists (repo checkout), delegate to it
 for cand in /usr/share/arunlinux/scripts/drivers-autoinstall.sh \
-            "$HOME/linux-for-my-laptop/scripts/drivers-autoinstall.sh" \
+            "$HOME/arunlinux/scripts/drivers-autoinstall.sh" \
             "$(dirname "$0")/../../scripts/drivers-autoinstall.sh"; do
-  if [ -f "$cand" ]; then say "📜 Running full driver setup: $cand"; bash "$cand"; ok "Done."; exit 0; fi
+  if [ -f "$cand" ]; then say "Running full driver setup: $cand"; bash "$cand"; ok "Done."; exit 0; fi
 done
 
 # --- Standalone fallback: do the essentials inline ---
-say "📦 Installing driver stack..."
+say "Installing driver stack..."
 apt update
 apt install -y intel-microcode mesa-utils mesa-va-drivers mesa-vulkan-drivers \
   vulkan-tools intel-media-va-driver i965-va-driver vainfo \

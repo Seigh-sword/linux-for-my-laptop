@@ -7,8 +7,10 @@ set -euo pipefail
 
 echo "==> Installing ArunDE Fusion desktop..."
 
-# --- Enable contrib/non-free/firmware repos (Debian) ---
-if grep -qi debian /etc/os-release; then
+# --- Enable contrib/non-free/firmware repos (Debian only, NOT Ubuntu) ---
+# NOTE: Ubuntu's os-release contains ID_LIKE=debian, so a naive grep would
+# match Ubuntu too and inject Debian-only components into Ubuntu sources.
+if [ -f /etc/debian_version ] && ! grep -qi ubuntu /etc/os-release; then
   apt install -y software-properties-common 2>/dev/null || true
   add-apt-repository -y contrib 2>/dev/null || true
   add-apt-repository -y non-free 2>/dev/null || true
@@ -46,7 +48,7 @@ apt install -y firefox 2>/dev/null || true
 apt install -y --no-install-recommends \
   qterminal lxqt-runner featherpad lximage-qt \
   lxqt-notificationd lxqt-policykit openbox obconf-qt 2>/dev/null || \
-  echo "⚠️  Some LXQt packages unavailable on this base — continuing."
+  echo "[WARN] Some LXQt packages unavailable on this base - continuing."
 
 # --- arunlinux apps runtime: YAD dialogs + ImageMagick (wallpaper thumbs) ---
 # Our apps are pure Bash + YAD — no Python GUI stack needed.
@@ -66,4 +68,4 @@ apt autoremove -y && apt autoclean
 echo "lightdm shared/default-x-display-manager select lightdm" | debconf-set-selections
 DEBIAN_FRONTEND=noninteractive apt install -y lightdm 2>/dev/null || true
 
-echo "✅ ArunDE Fusion desktop done."
+echo "[OK] ArunDE Fusion desktop done."

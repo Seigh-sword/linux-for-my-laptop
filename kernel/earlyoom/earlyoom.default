@@ -1,4 +1,4 @@
 # arunlinux earlyoom config → /etc/default/earlyoom
 # earlyoom kills the biggest RAM hog BEFORE the whole desktop freezes.
-# Essential on 4 GB with Chrome. Trigger at 10% free RAM / 5% free swap.
+# Essential on low-RAM machines running heavy apps. Trigger at 10% free RAM / 5% free swap.
 EARLYOOM_ARGS="-m 10 -s 5 -M 512000 --avoid '(^|/)(xfce4-session|xfwm4|lightdm|Xorg)$'"

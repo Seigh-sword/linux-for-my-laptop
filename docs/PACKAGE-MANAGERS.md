@@ -1,6 +1,6 @@
-# 📦 Package managers on arunlinux
+# Package managers on arunlinux
 
-You asked for all of them — here's how they fit together.
+arunlinux ships all of them — here is how they fit together.
 
 ## The lineup
 
@@ -13,7 +13,7 @@ You asked for all of them — here's how they fit together.
 | **AppImage** | Portable single-file apps (download → double-click) | Gear Lever app manages them |
 | **pacman** | Real Arch Linux in a container (for AUR/arch-only stuff) | see below |
 
-## ⭐ Just use `arun-pkg` — it picks for you
+## Just use `arun-pkg` - it picks for you
 
 ```bash
 sudo arun-pkg install vlc     # tries apt → flatpak → snap → npm → pacman
@@ -25,7 +25,7 @@ arun-pkg info <app>           # shows which sources provide it
 It even knows shortcuts: `arun-pkg install code` → VS Code, `chrome` → Chrome.
 
 ## Which source should win? (priority logic)
-1. **apt** — native packages use the least RAM/disk. Always preferred on 4 GB.
+1. **apt** — native packages use the least RAM/disk. Always preferred on low-RAM machines.
 2. **flatpak** — sandboxed + fresh; costs ~500 MB–1 GB runtime (one-time).
 3. **snap** — fine, but snapd idles in RAM; use only if needed.
 4. **npm -g** — only for JS CLI tools (never for desktop apps).
@@ -52,7 +52,7 @@ distrobox-export --app <appname>
 - Good sources: [appimagesearch.org](https://appimagesearch.org),
   [Flathub](https://flathub.org), [Snap Store](https://snapcraft.io/store).
 
-## Disk-space rules for 128 GB
+## Disk-space rules for small disks
 - Prefer apt builds. Uninstall unused flatpaks: `flatpak uninstall --unused`.
-- Clean monthly: `arun-optimizer disk` (apt + flatpak + logs in one go).
+- Clean regularly: `arun-optimizer disk` (apt + flatpak + logs in one go).
 - Check hogs: `baobab` (Disk Usage Analyzer) or `du -sh ~/* | sort -h`.

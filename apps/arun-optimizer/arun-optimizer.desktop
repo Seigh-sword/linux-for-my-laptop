@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=arunlinux Optimizer
-Comment=RAM, battery and startup optimizer for 4GB laptops
+Comment=RAM, battery and startup optimizer for low-RAM laptops
 Exec=xfce4-terminal -e arun-optimizer
 Icon=utilities-system-monitor
 Terminal=false

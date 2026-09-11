@@ -1,0 +1,212 @@
+#!/bin/bash
+# ============================================================================
+# arun-accounts - user account manager (backend: accounts.var data file)
+# Create accounts named anything: user, user2, neo... The launcher creates
+# them for real on the installed system. Passwords are never stored here.
+# ----------------------------------------------------------------------------
+# Usage:
+#   arun-accounts [--db FILE] list
+#   arun-accounts [--db FILE] add NAME [--fullname "..."] [--admin|--no-admin]
+#                                  [--shell /bin/bash]
+#   arun-accounts [--db FILE] del NAME
+#   arun-accounts [--db FILE] set NAME FIELD VALUE   (fullname|admin|shell)
+#   arun-accounts [--db FILE] show NAME
+#   arun-accounts [--db FILE] --tui                   (interactive menus)
+# ============================================================================
+set -uo pipefail
+
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+find_lib() {
+  for c in "$APP_DIR/../../lib/var.sh" \
+           "/usr/local/lib/arun-launcher/lib/var.sh" \
+           "/usr/share/arunlinux/launcher/lib/var.sh"; do
+    [ -f "$c" ] && { echo "$c"; return 0; }
+  done
+  return 1
+}
+find_db() {
+  [ -n "${ARUN_ACCOUNTS_DB:-}" ] && { echo "$ARUN_ACCOUNTS_DB"; return 0; }
+  for c in "$APP_DIR/../../launcher/accounts.var" \
+           "/usr/local/lib/arun-launcher/launcher/accounts.var" \
+           "/etc/arunlinux/accounts.var"; do
+    [ -f "$c" ] && { echo "$c"; return 0; }
+  done
+  # last resort: fresh db next to the repo checkout
+  echo "$APP_DIR/../../launcher/accounts.var"
+}
+
+LIB="$(find_lib)" || { echo "ERROR: lib/var.sh not found" >&2; exit 1; }
+# shellcheck source=../../lib/var.sh
+. "$LIB"
+DB="$(find_db)"
+
+# global flags (only --db for now)
+while [ "${1:-}" = "--db" ]; do DB="$2"; shift 2; done
+
+valid_name() { [[ "$1" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && [ "$1" != "root" ]; }
+valid_shell() {
+  case "$1" in /bin/bash|/bin/sh|/bin/dash|/usr/bin/bash) return 0;; esac
+  [ -f /etc/shells ] && grep -qxF "$1" /etc/shells
+}
+user_exists() { var_has "$DB" "user.$1.name" 2>/dev/null; }
+
+cmd_list() {
+  local k names=()
+  [ -f "$DB" ] || { echo "(no accounts database yet)"; return 0; }
+  while IFS= read -r k; do
+    case "$k" in user.*.name) names+=("${k#user.}"); names[${#names[@]}-1]="${names[${#names[@]}-1]%.name}";; esac
+  done < <(var_keys "$DB" "user." 2>/dev/null)
+  if [ "${#names[@]}" -eq 0 ]; then echo "(no accounts yet)"; return 0; fi
+  printf '%-16s %-24s %-6s %s\n' "NAME" "FULL NAME" "ADMIN" "SHELL"
+  local n
+  for n in "${names[@]}"; do
+    printf '%-16s %-24s %-6s %s\n' "$n" \
+      "$(var_get "$DB" "user.$n.fullname" "" 2>/dev/null)" \
+      "$(var_get "$DB" "user.$n.admin" "false" 2>/dev/null)" \
+      "$(var_get "$DB" "user.$n.shell" "/bin/bash" 2>/dev/null)"
+  done
+}
+
+cmd_add() {
+  local name="${1:-}"; [ -n "$name" ] || { echo "ERROR: add needs a NAME" >&2; return 1; }
+  shift || true
+  local fullname="" admin="true" shell="/bin/bash"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --fullname) fullname="$2"; shift 2;;
+      --admin) admin="true"; shift;;
+      --no-admin) admin="false"; shift;;
+      --shell) shell="$2"; shift 2;;
+      *) echo "ERROR: unknown option $1" >&2; return 1;;
+    esac
+  done
+  valid_name "$name" || { echo "ERROR: '$name' is not a valid linux username (lowercase, a-z 0-9 _ -, not root)" >&2; return 1; }
+  valid_shell "$shell" || { echo "ERROR: shell '$shell' not allowed" >&2; return 1; }
+  user_exists "$name" && { echo "ERROR: '$name' already exists" >&2; return 1; }
+  [ -n "$fullname" ] || fullname="$name"
+  [ -f "$DB" ] || printf '# accounts.var - managed by arun-accounts\n' > "$DB"
+  var_set "$DB" "user.$name.name" "$name" --string
+  var_set "$DB" "user.$name.fullname" "$fullname" --string
+  var_set "$DB" "user.$name.admin" "$admin" --bool
+  var_set "$DB" "user.$name.shell" "$shell" --string
+  echo "[OK] account '$name' created (admin=$admin)."
+}
+
+cmd_del() {
+  local name="${1:-}"; [ -n "$name" ] || { echo "ERROR: del needs a NAME" >&2; return 1; }
+  user_exists "$name" || { echo "ERROR: no such account '$name'" >&2; return 1; }
+  var_del "$DB" "user.$name.name"
+  var_del "$DB" "user.$name.fullname"
+  var_del "$DB" "user.$name.admin"
+  var_del "$DB" "user.$name.shell"
+  echo "[OK] account '$name' deleted."
+}
+
+cmd_set() {
+  local name="${1:-}" field="${2:-}" value="${3:-}"
+  [ -n "$name" ] && [ -n "$field" ] && [ -n "$value" ] || { echo "ERROR: set NAME FIELD VALUE" >&2; return 1; }
+  user_exists "$name" || { echo "ERROR: no such account '$name'" >&2; return 1; }
+  case "$field" in
+    fullname) var_set "$DB" "user.$name.fullname" "$value" --string ;;
+    shell) valid_shell "$value" || { echo "ERROR: shell '$value' not allowed" >&2; return 1; }
+           var_set "$DB" "user.$name.shell" "$value" --string ;;
+    admin) { [ "$value" = "true" ] || [ "$value" = "false" ]; } || { echo "ERROR: admin must be true|false" >&2; return 1; }
+           var_set "$DB" "user.$name.admin" "$value" --bool ;;
+    *) echo "ERROR: field must be fullname|admin|shell" >&2; return 1 ;;
+  esac
+  echo "[OK] $name.$field = $value"
+}
+
+cmd_show() {
+  local name="${1:-}"; [ -n "$name" ] || { echo "ERROR: show needs a NAME" >&2; return 1; }
+  user_exists "$name" || { echo "ERROR: no such account '$name'" >&2; return 1; }
+  echo "name     : $(var_get "$DB" "user.$name.name")"
+  echo "fullname : $(var_get "$DB" "user.$name.fullname")"
+  echo "admin    : $(var_get "$DB" "user.$name.admin")"
+  echo "shell    : $(var_get "$DB" "user.$name.shell")"
+}
+
+# --- interactive TUI (whiptail if present, else plain text) -------------------
+UI="text"
+command -v whiptail >/dev/null 2>&1 && UI="whiptail"
+
+tui_msg() { # $1 = text
+  if [ "$UI" = "whiptail" ]; then whiptail --title "arunlinux accounts" --msgbox "$1" 12 60
+  else printf '%s\n' "$1"; fi
+}
+tui_menu() { # $1 = prompt, rest = tag/item pairs -> prints tag
+  local prompt="$1"; shift
+  if [ "$UI" = "whiptail" ]; then
+    whiptail --title "arunlinux accounts" --menu "$prompt" 16 60 6 "$@" 3>&2 2>&1 1>&3
+  else
+    local tags=() items=() i=1 t
+    while [ $# -gt 0 ]; do tags+=("$1"); items+=("$2"); shift 2; done
+    echo "$prompt" >&2
+    for i in "${!tags[@]}"; do echo "  $((i+1))) ${items[$i]}" >&2; done
+    read -rp "Choose [1-${#tags[@]}]: " c >&2
+    [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -ge 1 ] && [ "$c" -le "${#tags[@]}" ] || return 1
+    printf '%s' "${tags[$((c-1))]}"
+  fi
+}
+tui_input() { # $1 = prompt, $2 = default -> prints answer
+  if [ "$UI" = "whiptail" ]; then
+    whiptail --title "arunlinux accounts" --inputbox "$1" 10 60 "$2" 3>&2 2>&1 1>&3
+  else
+    read -rp "$1 [$2]: " a; printf '%s' "${a:-$2}"
+  fi
+}
+
+cmd_tui() {
+  local choice name fn admin shell out
+  while true; do
+    choice="$(tui_menu "Accounts database: $DB" \
+      list "List accounts" add "Create account" del "Delete account" \
+      admin "Toggle admin flag" back "Back / exit")" || return 0
+    case "$choice" in
+      list)
+        out="$(cmd_list)"
+        tui_msg "$out"
+        [ "$UI" = "text" ] && read -rp "Press Enter..." _ < /dev/tty 2>/dev/null || true
+        ;;
+      add)
+        name="$(tui_input "Username (lowercase, e.g. user, user2, neo)" "user")" || continue
+        [ -n "$name" ] || continue
+        fn="$(tui_input "Full / display name" "$name")" || continue
+        admin="$(tui_menu "Make '$name' an administrator (sudo)?" true "Yes - admin" false "No - standard")" || continue
+        if out="$(cmd_add "$name" --fullname "$fn" $([ "$admin" = "true" ] && echo --admin || echo --no-admin) 2>&1)"; then
+          tui_msg "$out"
+        else
+          tui_msg "ERROR:\n$out"
+        fi
+        ;;
+      del)
+        name="$(tui_input "Username to delete" "")" || continue
+        [ -n "$name" ] || continue
+        if out="$(cmd_del "$name" 2>&1)"; then tui_msg "$out"; else tui_msg "ERROR:\n$out"; fi
+        ;;
+      admin)
+        name="$(tui_input "Username" "")" || continue
+        [ -n "$name" ] || continue
+        cur="$(var_get "$DB" "user.$name.admin" "" 2>/dev/null)" || { tui_msg "No such account."; continue; }
+        [ "$cur" = "true" ] && new="false" || new="true"
+        cmd_set "$name" admin "$new" >/dev/null && tui_msg "'$name' admin = $new"
+        ;;
+      *) return 0 ;;
+    esac
+  done
+}
+
+usage() { sed -n '2,17p' "$0" | sed 's/^# //;s/^#//'; }
+echo "db: $DB" > /dev/null  # (keep shellcheck calm about early use)
+
+case "${1:-list}" in
+  list) cmd_list;;
+  add) shift; cmd_add "$@";;
+  del) shift; cmd_del "$@";;
+  set) shift; cmd_set "$@";;
+  show) shift; cmd_show "$@";;
+  --tui|tui) cmd_tui;;
+  -h|--help|help) usage;;
+  *) echo "ERROR: unknown command '$1'" >&2; usage >&2; exit 1;;
+esac

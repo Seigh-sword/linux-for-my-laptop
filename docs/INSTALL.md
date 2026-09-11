@@ -1,4 +1,4 @@
-# 📥 Installing arunlinux
+# Installing arunlinux
 
 Three ways to get arunlinux, easiest first.
 
@@ -6,17 +6,17 @@ Three ways to get arunlinux, easiest first.
 
 ## Path A — Convert Debian/Ubuntu into arunlinux (fastest, no ISO needed)
 
-Best for trying everything TODAY in a VM or on the laptop.
+Best for trying everything TODAY in a VM or on any spare machine.
 
 1. Install **Debian 13** (netinst, XFCE task) or **Ubuntu 24.04** normally.
 2. Open a terminal:
    ```bash
    sudo apt update && sudo apt install -y git
-   git clone https://github.com/Seigh-sword/linux-for-my-laptop.git
-   cd linux-for-my-laptop
+   git clone https://github.com/Seigh-sword/arunlinux.git
+   cd arunlinux
    sudo bash scripts/install-arunlinux.sh
    ```
-3. **Reboot.** Log in → the Welcome Center appears → done! 🎉
+3. **Reboot.** Log in → the Welcome Center appears - done!
 
 > Re-running the script is safe — it skips what's already installed.
 
@@ -33,15 +33,15 @@ Best for trying everything TODAY in a VM or on the laptop.
 - **Linux:** `sudo dd if=arunlinux-x86_64-v<commit>.hybrid.iso of=/dev/sdX bs=4M status=progress`
   (triple-check `/dev/sdX` is your USB stick!)
 
-### 3. Partition plan for your 128 GB disk (dual-boot example)
+### 3. Partition plan for a small disk (dual-boot example, 128 GB)
 | Partition | Size | Notes |
 |---|---|---|
-| Windows C: | ~70 GB | shrink from Windows Disk Management first! |
-| `/` (root, ext4) | ~45 GB | arunlinux system + apps |
+| Windows C: | ~60-70 GB | shrink from Windows Disk Management first! |
+| `/` (root, ext4) | ~40-50 GB | arunlinux system + apps |
 | `swap` | 2 GB | tiny disk swap as zram backup |
 | EFI | existing | reuse Windows' EFI partition, don't format it |
 
-> ⚠️ **Back up first.** Disable **BitLocker**, **Fast Startup**, and **Secure Boot**
+> **Back up first.** Disable **BitLocker**, **Fast Startup**, and **Secure Boot**
 > (or enroll MOK) before installing alongside Windows.
 
 ### 4. Boot USB → try live mode → click Install → reboot → enjoy.
@@ -53,11 +53,19 @@ Best for trying everything TODAY in a VM or on the laptop.
 - Boot the ISO → live mode works without installing.
 - Inside the VM you can also test Path A on a Debian netinst.
 
+## Path D — Launcher netinstall (smallest download, real hardware)
+- Get the launcher ISO: **Actions → Build launcher ISO → Artifacts**
+  (or `sudo bash build/build-launcher.sh`), flash to USB, boot it.
+- Pick a version from the registry, create your accounts, pick a disk.
+- Guided mode wipes the disk (BIOS boot + EFI + root, hybrid GRUB);
+  manual mode opens `cfdisk`. Needs internet (packages from Debian mirror).
+- Full guide: [LAUNCHER.md](LAUNCHER.md).
+
 ---
 
 ## First boot checklist
 - [ ] Run `arun-welcome` → Update everything
-- [ ] Run `arun-wallpapers` → pick your vibe 🖼️
+- [ ] Run `arun-wallpapers` → pick your vibe
 - [ ] Open VS Code + Chrome, sign in, install extensions
 - [ ] `arun-optimizer status` → confirm zram is active
 - [ ] Set up Timeshift (first snapshot = time machine for your system)
